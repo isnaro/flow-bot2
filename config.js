@@ -81,7 +81,7 @@ module.exports = {
   },
 
   INVITE: {
-    ENABLED: false,
+    ENABLED: true,
   },
 
   MODERATION: {
