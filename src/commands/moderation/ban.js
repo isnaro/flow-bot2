@@ -1,9 +1,6 @@
 const { banTarget } = require("@helpers/ModUtils");
 const { ApplicationCommandOptionType } = require("discord.js");
 
-/**
- * @type {import("@structures/Command")}
- */
 module.exports = {
   name: "ban",
   description: "Bans the specified member",
@@ -51,17 +48,11 @@ module.exports = {
   },
 };
 
-/**
- * @param {import('discord.js').GuildMember} issuer
- * @param {import('discord.js').User} target
- * @param {string} reason
- */
 async function ban(issuer, target, reason) {
   try {
     const response = await banTarget(issuer, target, reason);
     if (typeof response === "boolean") {
-      // Send custom direct message to the banned user
-      await target.send(`You were banned from the server for the following reason: ${reason}`);
+      await target.send(`You were banned from the server for the following reason: ${reason}`).catch(console.error);
       return `${target.username} is banned!`;
     }
     if (response === "BOT_PERM") return `I do not have permission to ban ${target.username}`;
