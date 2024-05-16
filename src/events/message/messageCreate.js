@@ -10,12 +10,12 @@ module.exports = async (client, message) => {
   if (!message.guild || message.author.bot) return;
   const settings = await getSettings(message.guild);
 
-  // command handler
+
   let isCommand = false;
   if (PREFIX_COMMANDS.ENABLED) {
     // check for bot mentions
     if (message.content.includes(`${client.user.id}`)) {
-      message.channel.safeSend(`> matdasrnich `);
+      message.channel.safeSend(`> https://media.discordapp.net/attachments/1211796391622348860/1240771072312479864/image.png?ex=6647c59c&is=6646741c&hm=ea4ee3d32e4d24a6a69ebeeb197799d1c005095f01a0d33070499789e7602a4a&=&format=webp&quality=lossless&width=357&height=350`);
     }
 
     if (message.content && message.content.startsWith(settings.prefix)) {
