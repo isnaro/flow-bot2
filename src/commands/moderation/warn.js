@@ -1,12 +1,13 @@
 const { warnTarget } = require("@helpers/ModUtils");
 const { ApplicationCommandOptionType } = require("discord.js");
+const sendWarningDM = require("./sendWarningDM");
 
 /**
  * @type {import("@structures/Command")}
  */
 module.exports = {
   name: "warn",
-  description: "warns the specified member",
+  description: "Warns the specified member",
   category: "MODERATION",
   userPermissions: ["KickMembers"],
   command: {
@@ -19,13 +20,13 @@ module.exports = {
     options: [
       {
         name: "user",
-        description: "the target member",
+        description: "The target member",
         type: ApplicationCommandOptionType.User,
         required: true,
       },
       {
         name: "reason",
-        description: "reason for warn",
+        description: "Reason for the warn",
         type: ApplicationCommandOptionType.String,
         required: false,
       },
@@ -52,8 +53,21 @@ module.exports = {
 
 async function warn(issuer, target, reason) {
   const response = await warnTarget(issuer, target, reason);
-  if (typeof response === "boolean") return `${target.user.username} is warned!`;
-  if (response === "BOT_PERM") return `I do not have permission to warn ${target.user.username}`;
-  else if (response === "MEMBER_PERM") return `You do not have permission to warn ${target.user.username}`;
-  else return `Failed to warn ${target.user.username}`;
+
+  if (typeof response === "boolean") {
+    // Warn successful, now send a DM to the offender
+    try {
+      await sendWarningDM(issuer.client, reason, target.id);
+      return `${target.user.username} has been warned and notified!`;
+    } catch (error) {
+      console.error("Error sending warning DM:", error);
+      return `Warning sent to ${target.user.username}, but failed to send notification.`;
+    }
+  } else if (response === "BOT_PERM") {
+    return `I do not have permission to warn ${target.user.username}`;
+  } else if (response === "MEMBER_PERM") {
+    return `You do not have permission to warn ${target.user.username}`;
+  } else {
+    return `Failed to warn ${target.user.username}`;
+  }
 }
