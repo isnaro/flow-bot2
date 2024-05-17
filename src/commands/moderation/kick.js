@@ -36,14 +36,14 @@ module.exports = {
   async messageRun(message, args) {
     const target = await message.guild.resolveMember(args[0], true);
     if (!target) return message.safeReply(`No user found matching ${args[0]}`);
-    const reason = message.content.split(args[0])[1].trim();
+    const reason = args.slice(1).join(" ").trim() || "No reason provided";
     const response = await kick(message.member, target, reason);
     await message.safeReply(response);
   },
 
   async interactionRun(interaction) {
     const user = interaction.options.getUser("user");
-    const reason = interaction.options.getString("reason");
+    const reason = interaction.options.getString("reason") || "No reason provided";
     const target = await interaction.guild.members.fetch(user.id);
 
     const response = await kick(interaction.member, target, reason);
@@ -52,9 +52,30 @@ module.exports = {
 };
 
 async function kick(issuer, target, reason) {
-  const response = await kickTarget(issuer, target, reason);
-  if (typeof response === "boolean") return `${target.user.username} is kicked!`;
-  if (response === "BOT_PERM") return `I do not have permission to kick ${target.user.username}`;
-  else if (response === "MEMBER_PERM") return `You do not have permission to kick ${target.user.username}`;
-  else return `Failed to kick ${target.user.username}`;
+  try {
+    const response = await kickTarget(issuer, target, reason);
+    if (typeof response === "boolean") {
+      try {
+        await target.send(
+          `## ⚠️⚠️ You have been KICKED from FLOW for : ***${reason}*** ##
+
+### Please follow the server rules <#1200477076113850468> to avoid further actions. ###`
+        );
+      } catch (err) {
+        console.error(`Failed to send DM to ${target.user.username}:`, err);
+      }
+      return `${target.user.username} is kicked!`;
+    }
+    switch (response) {
+      case "BOT_PERM":
+        return `I do not have permission to kick ${target.user.username}`;
+      case "MEMBER_PERM":
+        return `You do not have permission to kick ${target.user.username}`;
+      default:
+        return `Failed to kick ${target.user.username}`;
+    }
+  } catch (error) {
+    console.error("Error kicking user:", error);
+    return "Failed to kick the user. Please try again later.";
+  }
 }
