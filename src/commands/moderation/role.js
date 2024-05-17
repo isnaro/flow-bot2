@@ -51,15 +51,21 @@ module.exports = {
     const targetRole = findClosestRole(message.guild, roleName, allowedRoles);
     if (!targetRole) return message.safeReply(`No role found matching ${roleName}`);
 
-    if (allowedToAddAllRoles || targetMember.roles.cache.has(targetRole.id)) {
-      if (allowedToAddAllRoles && !targetMember.roles.cache.has(targetRole.id)) {
-        await targetMember.roles.add(targetRole);
-        return message.safeReply(`Successfully added ${targetRole.name} to ${targetMember.user.username}`);
-      } else if (allowedToRemoveAllRoles && targetMember.roles.cache.has(targetRole.id)) {
-        await targetMember.roles.remove(targetRole);
-        return message.safeReply(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
+    if (allowedToAddAllRoles || allowedToRemoveAllRoles) {
+      if (targetMember.roles.cache.has(targetRole.id)) {
+        if (allowedToRemoveAllRoles) {
+          await targetMember.roles.remove(targetRole);
+          return message.safeReply(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
+        } else {
+          return message.safeReply("You do not have permission to remove this role.");
+        }
       } else {
-        return message.safeReply(`${targetMember.user.username} already has ${targetRole.name}`);
+        if (allowedToAddAllRoles) {
+          await targetMember.roles.add(targetRole);
+          return message.safeReply(`Successfully added ${targetRole.name} to ${targetMember.user.username}`);
+        } else {
+          return message.safeReply("You do not have permission to add this role.");
+        }
       }
     } else {
       return message.safeReply("You do not have permission to add or remove this role.");
