@@ -1,9 +1,6 @@
 const { ChannelType } = require("discord.js");
 const move = require("../shared/move");
 
-/**
- * @type {import("@structures/Command")}
- */
 module.exports = {
   name: "moveall",
   description: "Move all members in a voice channel to another channel",
@@ -25,8 +22,18 @@ module.exports = {
     }
 
     // Resolve source and destination channels
-    const sourceChannel = resolveChannel(message, args[0]);
-    const destinationChannel = resolveChannel(message, args[1]);
+    let sourceChannel;
+    let destinationChannel;
+
+    if (args[0].match(/^\d+$/) && args[1].match(/^\d+$/)) {
+      // Both IDs are provided
+      sourceChannel = message.guild.channels.cache.get(args[0]);
+      destinationChannel = message.guild.channels.cache.get(args[1]);
+    } else {
+      // Use current channel as source
+      sourceChannel = message.member.voice.channel;
+      destinationChannel = resolveChannel(message, args[1]);
+    }
 
     if (!sourceChannel || !destinationChannel) {
       return message.safeReply("One of the specified channels does not exist or is not a voice channel.");
