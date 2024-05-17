@@ -50,71 +50,71 @@ const logModeration = async (issuer, target, reason, type, data = {}) => {
         { name: "Channel", value: `#${data.channel.name} [${data.channel.id}]`, inline: false }
       );
       break;
-
+  
     case "TIMEOUT":
       embed.setColor(MODERATION.EMBED_COLORS.TIMEOUT);
       break;
-
+  
     case "UNTIMEOUT":
       embed.setColor(MODERATION.EMBED_COLORS.UNTIMEOUT);
       break;
-
+  
     case "KICK":
       embed.setColor(MODERATION.EMBED_COLORS.KICK);
       break;
-
+  
     case "SOFTBAN":
       embed.setColor(MODERATION.EMBED_COLORS.SOFTBAN);
       break;
-
+  
     case "BAN":
       embed.setColor(MODERATION.EMBED_COLORS.BAN);
       break;
-
+  
     case "UNBAN":
       embed.setColor(MODERATION.EMBED_COLORS.UNBAN);
       break;
-
+  
     case "VMUTE":
       embed.setColor(MODERATION.EMBED_COLORS.VMUTE);
       break;
-
+  
     case "VUNMUTE":
       embed.setColor(MODERATION.EMBED_COLORS.VUNMUTE);
       break;
-
+  
     case "DEAFEN":
       embed.setColor(MODERATION.EMBED_COLORS.DEAFEN);
       break;
-
+  
     case "UNDEAFEN":
       embed.setColor(MODERATION.EMBED_COLORS.UNDEAFEN);
       break;
-
+  
     case "DISCONNECT":
       embed.setColor(MODERATION.EMBED_COLORS.DISCONNECT);
       break;
-
+  
     case "MOVE":
       embed.setColor(MODERATION.EMBED_COLORS.MOVE);
       break;
-
+  
     case "MUTE":
-      embed.setColor(MODERATION.EMBED_COLORS.TIMEOUT);
+      embed.setColor(MODERATION.EMBED_COLORS.MUTE || MODERATION.EMBED_COLORS.TIMEOUT);
       break;
   }
-
+  
   if (type.toUpperCase() !== "PURGE") {
     embed.setAuthor({ name: `Moderation - ${type}` }).setThumbnail(target.displayAvatarURL());
-
+  
     if (target instanceof GuildMember) {
       fields.push({ name: "Member", value: `${target.displayName} [${target.id}]`, inline: false });
     } else {
       fields.push({ name: "User", value: `${target.tag} [${target.id}]`, inline: false });
     }
-
+  
     fields.push({ name: "Reason", value: reason || "No reason provided", inline: false });
-
+  
     if (type.toUpperCase() === "TIMEOUT") {
       fields.push({
         name: "Expires",
@@ -122,10 +122,14 @@ const logModeration = async (issuer, target, reason, type, data = {}) => {
         inline: true,
       });
     }
+    
     if (type.toUpperCase() === "MOVE") {
       fields.push({ name: "Moved to", value: data.channel.name, inline: true });
     }
   }
+  
+  // Set fields to embed
+  embed.addFields(fields);
 
   embed.setFields(fields);
   await addModLogToDb(issuer, target, reason, type.toUpperCase());
