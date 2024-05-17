@@ -42,7 +42,8 @@ module.exports = {
     const target = match[0];
     if (!target) return message.safeReply(`No user found matching ${args[0]}`);
 
-    const duration = ms(args[1]);
+    const durationString = args[1];
+    const duration = durationString ? ms(durationString) : null;
     const reason = duration ? args.slice(2).join(" ") : args.slice(1).join(" ");
     const response = await ban(message.member, target, reason || "No reason provided", duration);
     await message.safeReply(response);
@@ -75,11 +76,7 @@ async function ban(issuer, target, reason, duration) {
 Your ban will be lifted on: ${unbanDateString}
 
 ### In case you believe the ban was unfair, you can appeal your ban here: https://discord.gg/m8F8DwXu ###`;
-      }
 
-      await target.send(dmMessage).catch(console.error);
-
-      if (duration) {
         setTimeout(async () => {
           try {
             await unbanTarget(issuer.guild, target.id);
@@ -87,8 +84,10 @@ Your ban will be lifted on: ${unbanDateString}
             console.error(`Failed to unban ${target.username} after temporary ban:`, error);
           }
         }, duration);
-        return `${target.username} is banned for ${ms(duration, { long: true })}! The ban will be lifted on: ${new Date(Date.now() + duration).toUTCString()}`;
       }
+
+      await target.send(dmMessage).catch(console.error);
+
       return `${target.username} is banned!`;
     }
     if (response === "BOT_PERM") return `I do not have permission to ban ${target.username}`;
