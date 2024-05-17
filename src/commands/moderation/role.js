@@ -1,11 +1,13 @@
-const { ApplicationCommandOptionType } = require("discord.js");
-const Fuse = require("fuse.js");
+const { Message } = require("discord.js");
 
+/**
+ * @type {import("@structures/Command")}
+ */
 module.exports = {
   name: "role",
-  description: "Adds or removes a specified role from a user",
+  description: "Adds or removes a role from a user",
   category: "MODERATION",
-  userPermissions: ["ManageRoles"],
+  userPermissions: [],
   botPermissions: ["ManageRoles"],
   command: {
     enabled: true,
@@ -13,90 +15,97 @@ module.exports = {
     minArgsCount: 2,
   },
   slashCommand: {
-    enabled: true,
-    options: [
-      {
-        name: "user",
-        description: "The target user",
-        type: ApplicationCommandOptionType.User,
-        required: true,
-      },
-      {
-        name: "role",
-        description: "The role to add or remove",
-        type: ApplicationCommandOptionType.String,
-        required: true,
-      },
-    ],
+    enabled: false,
   },
 
   async messageRun(message, args) {
-    const requiredRoleId = "1226167494226608198"; // Role ID allowed to use the command
-    const allowedRoleIds = [
-      "1200591829754712145", "1200592378671681666",
-      "1200771376592736256", "1200776755066191882",
-      "1200776664133677159", "1230662535233929296",
+    const allowedRoles = [
+      "1200591829754712145",
+      "1200592378671681666",
+      "1200771376592736256",
+      "1200776755066191882",
+      "1200776664133677159",
+      "1230662535233929296",
       "1230662625956859946"
-    ]; // Allowed role IDs
+    ];
+    const memberRoles = message.member.roles.cache.map(role => role.id);
 
-    if (!message.member.roles.cache.has(requiredRoleId)) {
+    if (!memberRoles.includes("1226167494226608198")) {
       return message.safeReply("You do not have permission to use this command.");
     }
 
-    const targetUser = await message.guild.resolveMember(args[0], true);
-    if (!targetUser) return message.safeReply(`No user found matching ${args[0]}`);
-
+    const userIdOrMention = args[0];
     const roleName = args.slice(1).join(" ");
-    const role = findClosestRole(message.guild, roleName, allowedRoleIds);
-    if (!role) return message.safeReply(`No allowed role found matching ${roleName}`);
 
-    const response = await toggleRole(targetUser, role);
-    await message.safeReply(response);
-  },
+    const targetMember = await resolveMember(message, userIdOrMention);
+    if (!targetMember) return message.safeReply(`No user found matching ${userIdOrMention}`);
 
-  async interactionRun(interaction) {
-    const requiredRoleId = "1226167494226608198"; // Role ID allowed to use the command
-    const allowedRoleIds = [
-      "1200591829754712145", "1200592378671681666",
-      "1200771376592736256", "1200776755066191882",
-      "1200776664133677159", "1230662535233929296",
-      "1230662625956859946"
-    ]; // Allowed role IDs
+    const targetRole = findClosestRole(message.guild, roleName, allowedRoles);
+    if (!targetRole) return message.safeReply(`No role found matching ${roleName}`);
 
-    if (!interaction.member.roles.cache.has(requiredRoleId)) {
-      return interaction.followUp("You do not have permission to use this command.");
+    if (targetMember.roles.cache.has(targetRole.id)) {
+      await targetMember.roles.remove(targetRole);
+      return message.safeReply(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
+    } else {
+      await targetMember.roles.add(targetRole);
+      return message.safeReply(`Successfully added ${targetRole.name} to ${targetMember.user.username}`);
     }
-
-    const user = interaction.options.getUser("user");
-    const roleName = interaction.options.getString("role");
-    const targetUser = await interaction.guild.members.fetch(user.id);
-    const role = findClosestRole(interaction.guild, roleName, allowedRoleIds);
-
-    if (!role) return interaction.followUp(`No allowed role found matching ${roleName}`);
-
-    const response = await toggleRole(targetUser, role);
-    await interaction.followUp(response);
-  },
+  }
 };
 
-function findClosestRole(guild, roleName, allowedRoleIds) {
-  const roles = guild.roles.cache.filter(role => allowedRoleIds.includes(role.id)).map(role => ({ id: role.id, name: role.name }));
-  const fuse = new Fuse(roles, { keys: ["name"], threshold: 0.3 });
-  const result = fuse.search(roleName);
-  return result.length > 0 ? guild.roles.cache.get(result[0].item.id) : null;
+async function resolveMember(message, userIdOrMention) {
+  let targetMember;
+
+  if (message.mentions.members.size) {
+    targetMember = message.mentions.members.first();
+  } else {
+    targetMember = await message.guild.members.fetch(userIdOrMention).catch(() => null);
+  }
+
+  return targetMember;
 }
 
-async function toggleRole(targetUser, role) {
-  try {
-    if (targetUser.roles.cache.has(role.id)) {
-      await targetUser.roles.remove(role);
-      return `Successfully removed the role ${role.name} from ${targetUser.user.username}.`;
-    } else {
-      await targetUser.roles.add(role);
-      return `Successfully added the role ${role.name} to ${targetUser.user.username}.`;
+function findClosestRole(guild, roleName, allowedRoles) {
+  let closestRole = null;
+  let closestDistance = Infinity;
+
+  for (const roleId of allowedRoles) {
+    const role = guild.roles.cache.get(roleId);
+    if (role) {
+      const distance = getLevenshteinDistance(roleName.toLowerCase(), role.name.toLowerCase());
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestRole = role;
+      }
     }
-  } catch (error) {
-    console.error("Error toggling role:", error);
-    return "Failed to toggle the role. Please try again later.";
   }
+
+  return closestRole;
+}
+
+function getLevenshteinDistance(a, b) {
+  const matrix = [];
+
+  for (let i = 0; i <= b.length; i++) {
+    matrix[i] = [i];
+  }
+
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
+        );
+      }
+    }
+  }
+
+  return matrix[b.length][a.length];
 }
