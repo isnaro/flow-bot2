@@ -1,4 +1,5 @@
 const { ApplicationCommandOptionType } = require("discord.js");
+const Fuse = require("fuse.js");
 
 module.exports = {
   name: "role",
@@ -31,6 +32,12 @@ module.exports = {
 
   async messageRun(message, args) {
     const requiredRoleId = "1226167494226608198"; // Role ID allowed to use the command
+    const allowedRoleIds = [
+      "1200591829754712145", "1200592378671681666",
+      "1200771376592736256", "1200776755066191882",
+      "1200776664133677159", "1230662535233929296",
+      "1230662625956859946"
+    ]; // Allowed role IDs
 
     if (!message.member.roles.cache.has(requiredRoleId)) {
       return message.safeReply("You do not have permission to use this command.");
@@ -40,8 +47,8 @@ module.exports = {
     if (!targetUser) return message.safeReply(`No user found matching ${args[0]}`);
 
     const roleName = args.slice(1).join(" ");
-    const role = message.guild.roles.cache.find(r => r.name.toLowerCase() === roleName.toLowerCase());
-    if (!role) return message.safeReply(`No role found with the name ${roleName}`);
+    const role = findClosestRole(message.guild, roleName, allowedRoleIds);
+    if (!role) return message.safeReply(`No allowed role found matching ${roleName}`);
 
     const response = await toggleRole(targetUser, role);
     await message.safeReply(response);
@@ -49,6 +56,12 @@ module.exports = {
 
   async interactionRun(interaction) {
     const requiredRoleId = "1226167494226608198"; // Role ID allowed to use the command
+    const allowedRoleIds = [
+      "1200591829754712145", "1200592378671681666",
+      "1200771376592736256", "1200776755066191882",
+      "1200776664133677159", "1230662535233929296",
+      "1230662625956859946"
+    ]; // Allowed role IDs
 
     if (!interaction.member.roles.cache.has(requiredRoleId)) {
       return interaction.followUp("You do not have permission to use this command.");
@@ -57,14 +70,21 @@ module.exports = {
     const user = interaction.options.getUser("user");
     const roleName = interaction.options.getString("role");
     const targetUser = await interaction.guild.members.fetch(user.id);
-    const role = interaction.guild.roles.cache.find(r => r.name.toLowerCase() === roleName.toLowerCase());
+    const role = findClosestRole(interaction.guild, roleName, allowedRoleIds);
 
-    if (!role) return interaction.followUp(`No role found with the name ${roleName}`);
+    if (!role) return interaction.followUp(`No allowed role found matching ${roleName}`);
 
     const response = await toggleRole(targetUser, role);
     await interaction.followUp(response);
   },
 };
+
+function findClosestRole(guild, roleName, allowedRoleIds) {
+  const roles = guild.roles.cache.filter(role => allowedRoleIds.includes(role.id)).map(role => ({ id: role.id, name: role.name }));
+  const fuse = new Fuse(roles, { keys: ["name"], threshold: 0.3 });
+  const result = fuse.search(roleName);
+  return result.length > 0 ? guild.roles.cache.get(result[0].item.id) : null;
+}
 
 async function toggleRole(targetUser, role) {
   try {
