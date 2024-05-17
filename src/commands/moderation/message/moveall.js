@@ -70,9 +70,8 @@ function resolveChannel(message, channelIdOrMention) {
 
 async function moveAll(message, members, reason, destinationChannel) {
   try {
-    for (const member of members) {
-      await move(message, member, reason, destinationChannel);
-    }
+    const movePromises = members.map(member => move(message, member, reason, destinationChannel));
+    await Promise.all(movePromises);
     return `Moved ${members.length} member(s) to ${destinationChannel.toString()}.`;
   } catch (error) {
     console.error("Error moving members:", error);
