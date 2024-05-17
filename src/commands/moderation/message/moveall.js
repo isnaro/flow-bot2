@@ -9,8 +9,8 @@ module.exports = {
   botPermissions: ["MoveMembers"],
   command: {
     enabled: true,
-    usage: "<current-channel> <destination-channel> [reason]",
-    minArgsCount: 2,
+    usage: "<destination-channel> [reason]",
+    minArgsCount: 1,
   },
 
   async messageRun(message, args) {
@@ -21,49 +21,43 @@ module.exports = {
       return message.safeReply("You do not have permission to use this command.");
     }
 
-    // Resolve source and destination channels
-    let sourceChannel;
+    // Resolve destination channel
     let destinationChannel;
 
-    if (args[0].match(/^\d+$/) && args[1].match(/^\d+$/)) {
-      // Both IDs are provided
-      sourceChannel = message.guild.channels.cache.get(args[0]);
-      destinationChannel = message.guild.channels.cache.get(args[1]);
+    if (args[0].match(/^\d+$/)) {
+      // If only the destination channel ID is provided
+      destinationChannel = message.guild.channels.cache.get(args[0]);
     } else {
-      // Use current channel as source
-      sourceChannel = message.member.voice.channel;
-      destinationChannel = resolveChannel(message, args[1]);
+      // If the user is in a voice channel, use it as the source channel
+      const currentVoiceChannel = message.member.voice.channel;
+      if (!currentVoiceChannel) {
+        return message.safeReply("You need to be in a voice channel to use this command without specifying the source channel.");
+      }
+      destinationChannel = resolveChannel(message, args[0]);
     }
 
-    if (!sourceChannel || !destinationChannel) {
-      return message.safeReply("One of the specified channels does not exist or is not a voice channel.");
+    if (!destinationChannel) {
+      return message.safeReply("The specified channel does not exist or is not a voice channel.");
     }
 
     if (
-      !(
-        sourceChannel.type === ChannelType.GuildVoice ||
-        sourceChannel.type === ChannelType.GuildStageVoice
-      ) ||
       !(
         destinationChannel.type === ChannelType.GuildVoice ||
         destinationChannel.type === ChannelType.GuildStageVoice
       )
     ) {
-      return message.safeReply("Both source and destination channels must be voice channels.");
+      return message.safeReply("The destination channel must be a voice channel.");
     }
 
-    if (sourceChannel === destinationChannel) {
-      return message.safeReply("Source and destination channels cannot be the same.");
+    // Get members from source channel
+    const sourceChannelMembers = message.member.voice.channel.members.map(member => member);
+
+    if (sourceChannelMembers.length === 0) {
+      return message.safeReply("There are no members to move in your current voice channel.");
     }
 
-    const membersToMove = sourceChannel.members.map(member => member);
-
-    if (membersToMove.length === 0) {
-      return message.safeReply("There are no members to move in the specified source channel.");
-    }
-
-    const reason = args.slice(2).join(" ");
-    const response = await moveAll(message, membersToMove, reason, destinationChannel);
+    const reason = args.slice(1).join(" ");
+    const response = await moveAll(message, sourceChannelMembers, reason, destinationChannel);
     await message.safeReply(response);
   },
 };
