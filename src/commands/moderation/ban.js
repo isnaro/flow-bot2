@@ -41,7 +41,7 @@ module.exports = {
     const match = await message.client.resolveUsers(args[0], true);
     const target = match[0];
     if (!target) return message.safeReply(`No user found matching ${args[0]}`);
-    
+
     const duration = ms(args[1]);
     const reason = duration ? args.slice(2).join(" ") : args.slice(1).join(" ");
     const response = await ban(message.member, target, reason || "No reason provided", duration);
@@ -63,14 +63,18 @@ async function ban(issuer, target, reason, duration) {
   try {
     const response = await banTarget(issuer, target, reason);
     if (typeof response === "boolean") {
-      let dmMessage = `### 🔴🔴 You were banned from FLOW for : __***${reason}***__ ###
+      let dmMessage = `### 🔴🔴 You were banned from FLOW for __***${reason}***__ ###
 
-### in case you believe the ban was unfair, you can appeal your ban here : https://discord.gg/m8F8DwXu ###`;
+### In case you believe the ban was unfair, you can appeal your ban here: https://discord.gg/m8F8DwXu ###`;
 
       if (duration) {
-        dmMessage = `### 🔴🔴 You were banned from FLOW for : __***${reason}***__ for ${ms(duration, { long: true })} ###
+        const unbanDate = new Date(Date.now() + duration);
+        const unbanDateString = unbanDate.toUTCString();
+        dmMessage = `### 🔴🔴 You were banned from FLOW for __***${ms(duration, { long: true })}***__ reason : __***${reason}***__ ###
 
-### in case you believe the ban was unfair, you can appeal your ban here : https://discord.gg/m8F8DwXu ###`;
+Your ban will be lifted on: ${unbanDateString}
+
+### In case you believe the ban was unfair, you can appeal your ban here: https://discord.gg/m8F8DwXu ###`;
       }
 
       await target.send(dmMessage).catch(console.error);
@@ -83,7 +87,7 @@ async function ban(issuer, target, reason, duration) {
             console.error(`Failed to unban ${target.username} after temporary ban:`, error);
           }
         }, duration);
-        return `${target.username} is banned for ${ms(duration, { long: true })}!`;
+        return `${target.username} is banned for ${ms(duration, { long: true })}! The ban will be lifted on: ${new Date(Date.now() + duration).toUTCString()}`;
       }
       return `${target.username} is banned!`;
     }
