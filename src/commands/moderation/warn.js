@@ -58,7 +58,7 @@ async function warn(issuer, target, reason) {
         await target.send(
           `## ⚠️⚠️ You have been warned in FLOW for : ***${reason}*** ##
 
-### Please adhere to the server rules to avoid further actions. ###`
+### Please follow the server rules <#1200477076113850468> to avoid further actions. ###`
         );
       } catch (err) {
         console.error(`Failed to send DM to ${target.user.username}:`, err);

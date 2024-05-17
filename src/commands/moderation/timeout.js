@@ -49,7 +49,7 @@ module.exports = {
     const ms = ems(args[1]);
     if (!ms) return message.safeReply("Please provide a valid duration. Example: 1d/1h/1m/1s");
 
-    const reason = args.slice(2).join(" ").trim();
+    const reason = args.slice(2).join(" ").trim() || "No reason provided";
     const response = await timeout(message.member, target, ms, reason);
     await message.safeReply(response);
   },
@@ -62,7 +62,7 @@ module.exports = {
     const ms = ems(duration);
     if (!ms) return interaction.followUp("Please provide a valid duration. Example: 1d/1h/1m/1s");
 
-    const reason = interaction.options.getString("reason");
+    const reason = interaction.options.getString("reason") || "No reason provided";
     const target = await interaction.guild.members.fetch(user.id);
 
     const response = await timeout(interaction.member, target, ms, reason);
@@ -72,10 +72,33 @@ module.exports = {
 
 async function timeout(issuer, target, ms, reason) {
   if (isNaN(ms)) return "Please provide a valid duration. Example: 1d/1h/1m/1s";
-  const response = await timeoutTarget(issuer, target, ms, reason);
-  if (typeof response === "boolean") return `${target.user.username} is timed out!`;
-  if (response === "BOT_PERM") return `I do not have permission to timeout ${target.user.username}`;
-  else if (response === "MEMBER_PERM") return `You do not have permission to timeout ${target.user.username}`;
-  else if (response === "ALREADY_TIMEOUT") return `${target.user.username} is already timed out!`;
-  else return `Failed to timeout ${target.user.username}`;
+  
+  try {
+    const response = await timeoutTarget(issuer, target, ms, reason);
+    if (typeof response === "boolean") {
+      try {
+        await target.send(
+          `## ⏰⏰ You have been timed out in FLOW for : ***${reason}*** ##
+
+### The timeout duration is: ${ems(ms, { long: true })}. Please follow the server rules <#1200477076113850468> to avoid further actions. ###`
+        );
+      } catch (err) {
+        console.error(`Failed to send DM to ${target.user.username}:`, err);
+      }
+      return `${target.user.username} is timed out!`;
+    }
+    switch (response) {
+      case "BOT_PERM":
+        return `I do not have permission to timeout ${target.user.username}`;
+      case "MEMBER_PERM":
+        return `You do not have permission to timeout ${target.user.username}`;
+      case "ALREADY_TIMEOUT":
+        return `${target.user.username} is already timed out!`;
+      default:
+        return `Failed to timeout ${target.user.username}`;
+    }
+  } catch (error) {
+    console.error("Error timing out user:", error);
+    return "Failed to timeout the user. Please try again later.";
+  }
 }
