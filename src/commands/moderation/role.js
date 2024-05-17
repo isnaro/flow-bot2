@@ -4,15 +4,15 @@ const { Message } = require("discord.js");
  * @type {import("@structures/Command")}
  */
 module.exports = {
-  name: "role",
-  description: "Adds or removes a role from a user",
+  name: "temprole",
+  description: "Adds a temporary role to a user",
   category: "MODERATION",
   userPermissions: [],
   botPermissions: ["ManageRoles"],
   command: {
     enabled: true,
-    usage: "<user-id|@user> <role-name>",
-    minArgsCount: 2,
+    usage: "<user-id|@user> <duration> <role-name>",
+    minArgsCount: 3,
   },
   slashCommand: {
     enabled: false,
@@ -33,7 +33,8 @@ module.exports = {
     }
 
     const userIdOrMention = args[0];
-    const roleName = args.slice(1).join(" ");
+    const duration = args[1];
+    const roleName = args.slice(2).join(" ");
 
     const targetMember = await resolveMember(message, userIdOrMention);
     if (!targetMember) return message.safeReply(`No user found matching ${userIdOrMention}`);
@@ -41,13 +42,14 @@ module.exports = {
     const targetRole = findClosestRole(message.guild, roleName, allowedRoles);
     if (!targetRole) return message.safeReply(`No role found matching ${roleName}`);
 
-    if (targetMember.roles.cache.has(targetRole.id)) {
-      await targetMember.roles.remove(targetRole);
-      return message.safeReply(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
-    } else {
-      await targetMember.roles.add(targetRole);
-      return message.safeReply(`Successfully added ${targetRole.name} to ${targetMember.user.username}`);
-    }
+    await targetMember.roles.add(targetRole);
+
+    setTimeout(async () => {
+      if (targetMember.roles.cache.has(targetRole.id)) {
+        await targetMember.roles.remove(targetRole);
+        return message.safeReply(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
+      }
+    }, parseDuration(duration));
   }
 };
 
@@ -106,4 +108,32 @@ function getLevenshteinDistance(a, b) {
   }
 
   return matrix[b.length][a.length];
+}
+
+function parseDuration(duration) {
+  const regex = /^(\d+)([smhdwMy])$/i;
+  const matches = regex.exec(duration);
+  if (!matches) return 0;
+
+  const num = parseInt(matches[1]);
+  const unit = matches[2].toLowerCase();
+
+  switch (unit) {
+    case 's':
+      return num * 1000;
+    case 'm':
+      return num * 60 * 1000;
+    case 'h':
+      return num * 60 * 60 * 1000;
+    case 'd':
+      return num * 24 * 60 * 60 * 1000;
+    case 'w':
+      return num * 7 * 24 * 60 * 60 * 1000;
+    case 'M':
+      return num * 30 * 24 * 60 * 60 * 1000;
+    case 'y':
+      return num * 365 * 24 * 60 * 60 * 1000;
+    default:
+      return 0;
+  }
 }
