@@ -1,9 +1,6 @@
 const { ChannelType } = require("discord.js");
 const move = require("../shared/move");
 
-/**
- * @type {import("@structures/Command")}
- */
 module.exports = {
   name: "moveall",
   description: "Move all members in a voice channel to another channel",
@@ -12,8 +9,8 @@ module.exports = {
   botPermissions: ["MoveMembers"],
   command: {
     enabled: true,
-    usage: "<current-channel> <destination-channel> [reason]",
-    minArgsCount: 2,
+    usage: "<current-channel-id> <destination-channel-id> [reason] or <destination-channel-id> [reason]",
+    minArgsCount: 1,
   },
 
   async messageRun(message, args) {
@@ -24,12 +21,40 @@ module.exports = {
       return message.safeReply("You do not have permission to use this command.");
     }
 
-    // Resolve source and destination channels
-    const sourceChannel = resolveChannel(message, args[0]);
-    const destinationChannel = resolveChannel(message, args[1]);
+    let sourceChannelId;
+    let destinationChannelId;
+    let reason;
 
-    if (!sourceChannel || !destinationChannel) {
-      return message.safeReply("One of the specified channels does not exist or is not a voice channel.");
+    if (args.length === 1) {
+      destinationChannelId = args[0];
+    } else if (args.length >= 2) {
+      sourceChannelId = args[0];
+      destinationChannelId = args[1];
+      reason = args.slice(2).join(" ");
+    }
+
+    if (!destinationChannelId) {
+      return message.safeReply("Please provide the destination channel ID.");
+    }
+
+    // Resolve source and destination channels
+    let sourceChannel;
+    let destinationChannel;
+
+    if (sourceChannelId) {
+      sourceChannel = message.guild.channels.cache.get(sourceChannelId);
+    } else {
+      const currentVoiceChannel = message.member.voice.channel;
+      if (!currentVoiceChannel) {
+        return message.safeReply("You need to be in a voice channel to use this command without specifying the source channel.");
+      }
+      sourceChannel = currentVoiceChannel;
+    }
+
+    destinationChannel = message.guild.channels.cache.get(destinationChannelId);
+
+    if (!destinationChannel) {
+      return message.safeReply("The specified destination channel does not exist or is not a voice channel.");
     }
 
     if (
@@ -55,23 +80,15 @@ module.exports = {
       return message.safeReply("There are no members to move in the specified source channel.");
     }
 
-    const reason = args.slice(2).join(" ");
     const response = await moveAll(message, membersToMove, reason, destinationChannel);
     await message.safeReply(response);
   },
 };
 
-// Function to resolve channel by mention or ID
-function resolveChannel(message, channelIdOrMention) {
-  const channelId = channelIdOrMention.replace(/^<#|>$/g, ''); // Remove <# and > from the mention
-  return message.guild.channels.cache.get(channelId) || message.guild.channels.cache.find(channel => channel.name === channelId);
-}
-
 async function moveAll(message, members, reason, destinationChannel) {
   try {
-    for (const member of members) {
-      await move(message, member, reason, destinationChannel);
-    }
+    const movePromises = members.map(member => move(message, member, reason, destinationChannel));
+    await Promise.all(movePromises);
     return `Moved ${members.length} member(s) to ${destinationChannel.toString()}.`;
   } catch (error) {
     console.error("Error moving members:", error);
