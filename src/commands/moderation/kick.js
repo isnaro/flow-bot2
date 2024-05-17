@@ -53,27 +53,31 @@ module.exports = {
 
 async function kick(issuer, target, reason) {
   try {
-    const response = await kickTarget(issuer, target, reason);
-    if (typeof response === "boolean") {
-      try {
-        await target.send(
-          `## ⚠️⚠️ You have been KICKED from FLOW for : ***${reason}*** ##
+    const dmMessage = `## ⚠️⚠️ You have been KICKED from FLOW for : ***${reason}*** ##
 
-### Please follow the server rules <#1200477076113850468> to avoid further actions. ###`
-        );
-      } catch (err) {
-        console.error(`Failed to send DM to ${target.user.username}:`, err);
+### Please follow the server rules <#1200477076113850468> to avoid further actions. ###`;
+    
+    try {
+      await target.send(dmMessage);
+    } catch (err) {
+      console.error(`Failed to send DM to ${target.user.username}:`, err);
+    }
+
+    setTimeout(async () => {
+      const response = await kickTarget(issuer, target, reason);
+      if (typeof response === "boolean") {
+        return `${target.user.username} is kicked!`;
       }
-      return `${target.user.username} is kicked!`;
-    }
-    switch (response) {
-      case "BOT_PERM":
-        return `I do not have permission to kick ${target.user.username}`;
-      case "MEMBER_PERM":
-        return `You do not have permission to kick ${target.user.username}`;
-      default:
-        return `Failed to kick ${target.user.username}`;
-    }
+      switch (response) {
+        case "BOT_PERM":
+          return `I do not have permission to kick ${target.user.username}`;
+        case "MEMBER_PERM":
+          return `You do not have permission to kick ${target.user.username}`;
+        default:
+          return `Failed to kick ${target.user.username}`;
+      }
+    }, 2000);  // 2-second delay
+    
   } catch (error) {
     console.error("Error kicking user:", error);
     return "Failed to kick the user. Please try again later.";
