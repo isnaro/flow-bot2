@@ -1,4 +1,3 @@
-const { banTarget, unbanTarget } = require("@helpers/ModUtils");
 const { ApplicationCommandOptionType } = require("discord.js");
 const ms = require("ms");
 
@@ -62,42 +61,48 @@ module.exports = {
 
 async function ban(issuer, target, reason, duration) {
   try {
-    const response = await banTarget(issuer, target, reason);
-    if (typeof response === "boolean") {
-      let dmMessage = `### 🔴🔴 You were banned from **FLOW** for __***${reason}***__ ###
+    const banMessage = `### 🔴🔴 You were banned from **${issuer.guild.name}** for __***${reason}***__ ###`;
 
-### In case you believe the ban was unfair, you can appeal your ban here: [FLOW Appeal](https://discord.gg/m8F8DwXu) ###`;
+    if (duration) {
+      const unbanDate = new Date(Date.now() + duration);
+      const unbanDateString = unbanDate.toUTCString();
+      const durationMessage = `Duration: __***${ms(duration, { long: true })}***__. Your ban will be lifted on: **${unbanDateString}**`;
 
-      if (duration) {
-        const unbanDate = new Date(Date.now() + duration);
-        const unbanDateString = unbanDate.toUTCString();
-        dmMessage = `### 🔴🔴 You were banned from **FLOW** for __***${ms(duration, { long: true })}***__ reason : __***${reason}***__ ###
-
-Your ban will be lifted on: **${unbanDateString}**
-
-### In case you believe the ban was unfair, you can appeal your ban here: [FLOW Appeal](https://discord.gg/m8F8DwXu) ###`;
-
-        setTimeout(async () => {
-          try {
-            await unbanTarget(issuer.guild, target.id);
-          } catch (error) {
-            console.error(`Failed to unban ${target.username} after temporary ban:`, error);
-          }
-        }, duration);
-      }
+      const dmMessage = `${banMessage}\n\n${durationMessage}\n\n### In case you believe the ban was unfair, you can appeal your ban here: [FLOW Appeal](https://discord.gg/m8F8DwXu) ###`;
 
       try {
         await target.send(dmMessage);
       } catch (error) {
         console.error(`Failed to send DM to ${target.username}:`, error);
-        return `${target.username} is banned but I couldn't send them a DM.`;
       }
 
-      return `${target.username} is banned!`;
+      setTimeout(async () => {
+        await issuer.guild.members.ban(target, { reason });
+
+        setTimeout(async () => {
+          try {
+            await issuer.guild.members.unban(target.id, "Ban duration expired");
+          } catch (error) {
+            console.error(`Failed to unban ${target.username} after temporary ban:`, error);
+          }
+        }, duration);
+
+      }, 5000); // 5-second delay before banning
+
+      return `${target.username} will be banned in 5 seconds for ${ms(duration, { long: true })}!`;
+    } else {
+      try {
+        await target.send(banMessage);
+      } catch (error) {
+        console.error(`Failed to send DM to ${target.username}:`, error);
+      }
+
+      setTimeout(async () => {
+        await issuer.guild.members.ban(target, { reason });
+      }, 5000); // 5-second delay before banning
+
+      return `${target.username} will be permanently banned in 5 seconds!`;
     }
-    if (response === "BOT_PERM") return `I do not have permission to ban ${target.username}`;
-    else if (response === "MEMBER_PERM") return `You do not have permission to ban ${target.username}`;
-    else return `Failed to ban ${target.username}`;
   } catch (error) {
     console.error("Error banning user:", error);
     return "Failed to ban the user. Please try again later.";

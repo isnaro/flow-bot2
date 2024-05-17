@@ -32,6 +32,7 @@ const Schema = new mongoose.Schema(
         "UNDEAFEN",
         "DISCONNECT",
         "MOVE",
+        "MUTE",
       ],
     },
   },

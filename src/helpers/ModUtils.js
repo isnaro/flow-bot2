@@ -98,6 +98,10 @@ const logModeration = async (issuer, target, reason, type, data = {}) => {
     case "MOVE":
       embed.setColor(MODERATION.EMBED_COLORS.MOVE);
       break;
+
+    case "MUTE":
+      embed.setColor(MODERATION.EMBED_COLORS.TIMEOUT);
+      break;
   }
 
   if (type.toUpperCase() !== "PURGE") {
