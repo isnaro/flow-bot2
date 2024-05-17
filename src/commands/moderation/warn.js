@@ -35,14 +35,14 @@ module.exports = {
   async messageRun(message, args) {
     const target = await message.guild.resolveMember(args[0], true);
     if (!target) return message.safeReply(`No user found matching ${args[0]}`);
-    const reason = message.content.split(args[0])[1].trim();
+    const reason = args.slice(1).join(" ") || "No reason provided";
     const response = await warn(message.member, target, reason);
     await message.safeReply(response);
   },
 
   async interactionRun(interaction) {
     const user = interaction.options.getUser("user");
-    const reason = interaction.options.getString("reason");
+    const reason = interaction.options.getString("reason") || "No reason provided";
     const target = await interaction.guild.members.fetch(user.id);
 
     const response = await warn(interaction.member, target, reason);
@@ -51,9 +51,30 @@ module.exports = {
 };
 
 async function warn(issuer, target, reason) {
-  const response = await warnTarget(issuer, target, reason);
-  if (typeof response === "boolean") return `${target.user.username} is warned!`;
-  if (response === "BOT_PERM") return `I do not have permission to warn ${target.user.username}`;
-  else if (response === "MEMBER_PERM") return `You do not have permission to warn ${target.user.username}`;
-  else return `Failed to warn ${target.user.username}`;
+  try {
+    const response = await warnTarget(issuer, target, reason);
+    if (typeof response === "boolean") {
+      try {
+        await target.send(
+          `## ⚠️⚠️ You have been warned in FLOW for : ***${reason}*** ##
+
+### Please adhere to the server rules to avoid further actions. ###`
+        );
+      } catch (err) {
+        console.error(`Failed to send DM to ${target.user.username}:`, err);
+      }
+      return `${target.user.username} has been warned!`;
+    }
+    switch (response) {
+      case "BOT_PERM":
+        return `I do not have permission to warn ${target.user.username}`;
+      case "MEMBER_PERM":
+        return `You do not have permission to warn ${target.user.username}`;
+      default:
+        return `Failed to warn ${target.user.username}`;
+    }
+  } catch (error) {
+    console.error("Error warning user:", error);
+    return "Failed to warn the user. Please try again later.";
+  }
 }
