@@ -12,7 +12,7 @@ module.exports = {
   botPermissions: ["MoveMembers"],
   command: {
     enabled: true,
-    usage: "<current-channel> <destination-channel> [reason]",
+    usage: "<current-channel-id> <destination-channel-id> [reason]",
     minArgsCount: 2,
   },
 
@@ -24,19 +24,27 @@ module.exports = {
       return message.safeReply("You do not have permission to use this command.");
     }
 
-    const sourceChannelName = args[0];
-    const destinationChannelName = args[1];
+    const sourceChannelId = args[0];
+    const destinationChannelId = args[1];
 
-    const sourceChannel = message.guild.channels.cache.find(channel => channel.name === sourceChannelName && (
-      channel.type === ChannelType.GuildVoice || channel.type === ChannelType.GuildStageVoice
-    ));
-    
-    const destinationChannel = message.guild.channels.cache.find(channel => channel.name === destinationChannelName && (
-      channel.type === ChannelType.GuildVoice || channel.type === ChannelType.GuildStageVoice
-    ));
+    const sourceChannel = message.guild.channels.cache.get(sourceChannelId);
+    const destinationChannel = message.guild.channels.cache.get(destinationChannelId);
 
     if (!sourceChannel || !destinationChannel) {
-      return message.safeReply("One of the specified channels does not exist or is not a voice channel.");
+      return message.safeReply("One of the specified channels does not exist.");
+    }
+
+    if (
+      !(
+        sourceChannel.type === ChannelType.GuildVoice ||
+        sourceChannel.type === ChannelType.GuildStageVoice
+      ) ||
+      !(
+        destinationChannel.type === ChannelType.GuildVoice ||
+        destinationChannel.type === ChannelType.GuildStageVoice
+      )
+    ) {
+      return message.safeReply("Both source and destination channels must be voice channels.");
     }
 
     if (sourceChannel === destinationChannel) {
