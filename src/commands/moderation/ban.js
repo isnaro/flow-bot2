@@ -64,18 +64,18 @@ async function ban(issuer, target, reason, duration) {
   try {
     const response = await banTarget(issuer, target, reason);
     if (typeof response === "boolean") {
-      let dmMessage = `### 🔴🔴 You were banned from FLOW for __***${reason}***__ ###
+      let dmMessage = `### 🔴🔴 You were banned from **FLOW** for __***${reason}***__ ###
 
-### In case you believe the ban was unfair, you can appeal your ban here: https://discord.gg/m8F8DwXu ###`;
+### In case you believe the ban was unfair, you can appeal your ban here: [FLOW Appeal](https://discord.gg/m8F8DwXu) ###`;
 
       if (duration) {
         const unbanDate = new Date(Date.now() + duration);
         const unbanDateString = unbanDate.toUTCString();
-        dmMessage = `### 🔴🔴 You were banned from FLOW for __***${ms(duration, { long: true })}***__ reason : __***${reason}***__ ###
+        dmMessage = `### 🔴🔴 You were banned from **FLOW** for __***${ms(duration, { long: true })}***__ reason : __***${reason}***__ ###
 
-Your ban will be lifted on: ${unbanDateString}
+Your ban will be lifted on: **${unbanDateString}**
 
-### In case you believe the ban was unfair, you can appeal your ban here: https://discord.gg/m8F8DwXu ###`;
+### In case you believe the ban was unfair, you can appeal your ban here: [FLOW Appeal](https://discord.gg/m8F8DwXu) ###`;
 
         setTimeout(async () => {
           try {
@@ -86,7 +86,12 @@ Your ban will be lifted on: ${unbanDateString}
         }, duration);
       }
 
-      await target.send(dmMessage).catch(console.error);
+      try {
+        await target.send(dmMessage);
+      } catch (error) {
+        console.error(`Failed to send DM to ${target.username}:`, error);
+        return `${target.username} is banned but I couldn't send them a DM.`;
+      }
 
       return `${target.username} is banned!`;
     }
