@@ -63,9 +63,18 @@ async function ban(issuer, target, reason, duration) {
   try {
     const response = await banTarget(issuer, target, reason);
     if (typeof response === "boolean") {
-      await target.send(`### 🔴🔴 You were banned from FLOW for : __***${reason}***__
+      let dmMessage = `### 🔴🔴 You were banned from FLOW for : __***${reason}***__ ###
 
-### in case you believe the ban was unfair, you can appeal your ban here : https://discord.gg/m8F8DwXu ###`).catch(console.error);
+### in case you believe the ban was unfair, you can appeal your ban here : https://discord.gg/m8F8DwXu ###`;
+
+      if (duration) {
+        dmMessage = `### 🔴🔴 You were banned from FLOW for : __***${reason}***__ for ${ms(duration, { long: true })} ###
+
+### in case you believe the ban was unfair, you can appeal your ban here : https://discord.gg/m8F8DwXu ###`;
+      }
+
+      await target.send(dmMessage).catch(console.error);
+
       if (duration) {
         setTimeout(async () => {
           try {
