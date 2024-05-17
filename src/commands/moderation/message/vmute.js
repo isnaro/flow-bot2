@@ -1,4 +1,3 @@
-const vmute = require("../shared/vmute");
 const { ChannelType } = require("discord.js");
 
 module.exports = {
@@ -17,18 +16,18 @@ module.exports = {
   },
 
   async messageRun(message, args) {
-    const allowedRoles = ["1200477300093878385", "1200477902387544185"]; // Role IDs allowed to use the command
+    const allowedRolesForChannelMute = ["1200477300093878385", "1200477902387544185"]; // Role IDs allowed to use channel-based mute
+    const allowedRolesForUserMute = ["1200477300093878385", "1200477902387544185", "1226167494226608198"]; // Role IDs allowed to use user-based mute
+
     const memberRoles = message.member.roles.cache.map(role => role.id);
-
-    if (!allowedRoles.some(role => memberRoles.includes(role))) {
-      return message.safeReply("You do not have permission to use this command.");
-    }
-
     const channelArg = args[0];
     const reason = args.slice(1).join(" ");
 
-    // If the argument is a channel ID
-    if (channelArg.match(/^\d+$/)) {
+    if (channelArg.match(/^\d+$/)) { // If the argument is a channel ID
+      if (!allowedRolesForChannelMute.some(role => memberRoles.includes(role))) {
+        return message.safeReply("You do not have permission to use channel-based mute.");
+      }
+
       const targetChannel = message.guild.channels.cache.get(channelArg);
 
       if (!targetChannel || !(targetChannel.type === ChannelType.GuildVoice || targetChannel.type === ChannelType.GuildStageVoice)) {
@@ -44,6 +43,10 @@ module.exports = {
       const response = await muteAll(message, membersToMute, reason);
       await message.safeReply(response);
     } else { // Otherwise, treat it as a member mention or ID
+      if (!allowedRolesForUserMute.some(role => memberRoles.includes(role))) {
+        return message.safeReply("You do not have permission to use user-based mute.");
+      }
+
       const target = await message.guild.resolveMember(channelArg, true);
       if (!target) return message.safeReply(`No user found matching ${channelArg}`);
       
@@ -56,7 +59,9 @@ module.exports = {
 async function muteAll(message, members, reason) {
   try {
     for (const member of members) {
-      await vmute(message, member, reason);
+      if (member.voice) {
+        await member.voice.setMute(true, reason);
+      }
     }
     return `Muted ${members.length} member(s) in the channel.`;
   } catch (error) {
