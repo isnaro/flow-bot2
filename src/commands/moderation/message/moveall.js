@@ -12,7 +12,7 @@ module.exports = {
   botPermissions: ["MoveMembers"],
   command: {
     enabled: true,
-    usage: "<current-channel-id> <destination-channel-id> [reason]",
+    usage: "<current-channel> <destination-channel> [reason]",
     minArgsCount: 2,
   },
 
@@ -24,14 +24,12 @@ module.exports = {
       return message.safeReply("You do not have permission to use this command.");
     }
 
-    const sourceChannelId = args[0];
-    const destinationChannelId = args[1];
-
-    const sourceChannel = message.guild.channels.cache.get(sourceChannelId);
-    const destinationChannel = message.guild.channels.cache.get(destinationChannelId);
+    // Resolve source and destination channels
+    const sourceChannel = resolveChannel(message, args[0]);
+    const destinationChannel = resolveChannel(message, args[1]);
 
     if (!sourceChannel || !destinationChannel) {
-      return message.safeReply("One of the specified channels does not exist.");
+      return message.safeReply("One of the specified channels does not exist or is not a voice channel.");
     }
 
     if (
@@ -62,6 +60,12 @@ module.exports = {
     await message.safeReply(response);
   },
 };
+
+// Function to resolve channel by mention or ID
+function resolveChannel(message, channelIdOrMention) {
+  const channelId = channelIdOrMention.replace(/^<#|>$/g, ''); // Remove <# and > from the mention
+  return message.guild.channels.cache.get(channelId) || message.guild.channels.cache.find(channel => channel.name === channelId);
+}
 
 async function moveAll(message, members, reason, destinationChannel) {
   try {
