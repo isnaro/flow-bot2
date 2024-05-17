@@ -27,18 +27,25 @@ module.exports = {
       "1201137753295962112", "1200592759438987374", "1201138020569600000"
     ];
 
-    let allowedToAddAllRoles = false;
-    let allowedToRemoveAllRoles = false;
+    const allowedToAddRoles = [
+      "1226167494226608198",
+      "1200477300093878385",
+      "1200477902387544185"
+    ];
 
-    if (message.member.roles.cache.has("1226167494226608198")) {
-      allowedRoles.push("1226167494226608198");
-    } else if (
-      message.member.roles.cache.has("1200477300093878385") ||
-      message.member.roles.cache.has("1200477902387544185")
-    ) {
-      allowedToAddAllRoles = true;
-      allowedToRemoveAllRoles = true;
-    } else {
+    let canAddRoles = false;
+    let canRemoveRoles = false;
+
+    // Check if the user has permission to add or remove roles
+    for (const roleId of allowedToAddRoles) {
+      if (message.member.roles.cache.has(roleId)) {
+        canAddRoles = true;
+        canRemoveRoles = true;
+        break;
+      }
+    }
+
+    if (!canAddRoles && !canRemoveRoles) {
       return message.safeReply("You do not have permission to use this command.");
     }
 
@@ -51,16 +58,16 @@ module.exports = {
     const targetRole = findClosestRole(message.guild, roleName, allowedRoles);
     if (!targetRole) return message.safeReply(`No role found matching ${roleName}`);
 
-    if (allowedToAddAllRoles || allowedToRemoveAllRoles) {
+    if (canAddRoles || canRemoveRoles) {
       if (targetMember.roles.cache.has(targetRole.id)) {
-        if (allowedToRemoveAllRoles) {
+        if (canRemoveRoles) {
           await targetMember.roles.remove(targetRole);
           return message.safeReply(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
         } else {
           return message.safeReply("You do not have permission to remove this role.");
         }
       } else {
-        if (allowedToAddAllRoles) {
+        if (canAddRoles) {
           await targetMember.roles.add(targetRole);
           return message.safeReply(`Successfully added ${targetRole.name} to ${targetMember.user.username}`);
         } else {
