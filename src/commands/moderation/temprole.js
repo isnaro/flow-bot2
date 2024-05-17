@@ -26,9 +26,19 @@ module.exports = {
       "1200485716220723220", "1201137925216272424", "1201137119335292948",
       "1201137753295962112", "1200592759438987374", "1201138020569600000"
     ];
-    const memberRoles = message.member.roles.cache.map(role => role.id);
 
-    if (!memberRoles.includes("1226167494226608198")) {
+    let allowedToAddAllRoles = false;
+    let allowedToRemoveAllRoles = false;
+
+    if (message.member.roles.cache.has("1226167494226608198")) {
+      allowedRoles.push("1226167494226608198");
+    } else if (
+      message.member.roles.cache.has("1200477300093878385") ||
+      message.member.roles.cache.has("1200477902387544185")
+    ) {
+      allowedToAddAllRoles = true;
+      allowedToRemoveAllRoles = true;
+    } else {
       return message.safeReply("You do not have permission to use this command.");
     }
 
@@ -42,10 +52,6 @@ module.exports = {
     const targetRole = findClosestRole(message.guild, roleName, allowedRoles);
     if (!targetRole) return message.safeReply(`No role found matching ${roleName}`);
 
-    if (!allowedRoles.includes(targetRole.id)) {
-      return message.safeReply(`You do not have permission to add or remove the role ${targetRole.name}.`);
-    }
-
     await targetMember.roles.add(targetRole);
 
     setTimeout(async () => {
@@ -54,6 +60,8 @@ module.exports = {
         return message.safeReply(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
       }
     }, parseDuration(duration));
+    
+    return message.safeReply(`Successfully gave ${targetMember.user.username} ${targetRole.name} for ${duration}`);
   }
 };
 
@@ -134,10 +142,4 @@ function parseDuration(duration) {
     case 'w':
       return num * 7 * 24 * 60 * 60 * 1000;
     case 'M':
-      return num * 30 * 24 * 60 * 60 * 1000;
-    case 'y':
-      return num * 365 * 24 * 60 * 60 * 1000;
-    default:
-      return 0;
-  }
-}
+      return num * 30 * 24 * 60 * 60 * 100
