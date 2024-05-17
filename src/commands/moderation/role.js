@@ -24,26 +24,28 @@ module.exports = {
       "1200776755066191882", "1200776664133677159", "1230662535233929296",
       "1230662625956859946", "1200592956831305799", "1201137840134824027",
       "1200485716220723220", "1201137925216272424", "1201137119335292948",
-      "1201137753295962112", "1200592759438987374", "1201138020569600000"
+      "1201137753295962112", "1200592759438987374", "1201138020569600000", "1228818077706358904"
     ];
 
-    const allRolesPermission = [
+    const allowedToAddRoles = [
+      "1226167494226608198",
       "1200477300093878385",
       "1200477902387544185"
     ];
 
-    let allowedToAddAllRoles = false;
-    let allowedToRemoveAllRoles = false;
+    let canAddRoles = false;
+    let canRemoveRoles = false;
 
-    if (message.member.roles.cache.has("1226167494226608198")) {
-      allowedToAddAllRoles = false;
-      allowedToRemoveAllRoles = false;
-    } else if (
-      allRolesPermission.some(role => message.member.roles.cache.has(role))
-    ) {
-      allowedToAddAllRoles = true;
-      allowedToRemoveAllRoles = true;
-    } else {
+    // Check if the user has permission to add or remove roles
+    for (const roleId of allowedToAddRoles) {
+      if (message.member.roles.cache.has(roleId)) {
+        canAddRoles = true;
+        canRemoveRoles = true;
+        break;
+      }
+    }
+
+    if (!canAddRoles && !canRemoveRoles) {
       return message.safeReply("You do not have permission to use this command.");
     }
 
@@ -56,16 +58,16 @@ module.exports = {
     const targetRole = findClosestRole(message.guild, roleName, allowedRoles);
     if (!targetRole) return message.safeReply(`No role found matching ${roleName}`);
 
-    if (allowedToAddAllRoles || allowedToRemoveAllRoles) {
+    if (canAddRoles || canRemoveRoles) {
       if (targetMember.roles.cache.has(targetRole.id)) {
-        if (allowedToRemoveAllRoles) {
+        if (canRemoveRoles) {
           await targetMember.roles.remove(targetRole);
           return message.safeReply(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
         } else {
           return message.safeReply("You do not have permission to remove this role.");
         }
       } else {
-        if (allowedToAddAllRoles) {
+        if (canAddRoles) {
           await targetMember.roles.add(targetRole);
           return message.safeReply(`Successfully added ${targetRole.name} to ${targetMember.user.username}`);
         } else {
