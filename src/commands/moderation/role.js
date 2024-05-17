@@ -20,11 +20,11 @@ module.exports = {
 
   async messageRun(message, args) {
     const allowedRoles = [
-        "1200591829754712145", "1200592378671681666", "1200771376592736256",
-        "1200776755066191882", "1200776664133677159", "1230662535233929296",
-        "1230662625956859946", "1200592956831305799", "1201137840134824027",
-        "1200485716220723220", "1201137925216272424", "1201137119335292948",
-        "1201137753295962112", "1200592759438987374", "1201138020569600000"
+      "1200591829754712145", "1200592378671681666", "1200771376592736256",
+      "1200776755066191882", "1200776664133677159", "1230662535233929296",
+      "1230662625956859946", "1200592956831305799", "1201137840134824027",
+      "1200485716220723220", "1201137925216272424", "1201137119335292948",
+      "1201137753295962112", "1200592759438987374", "1201138020569600000"
     ];
     const memberRoles = message.member.roles.cache.map(role => role.id);
 
@@ -41,6 +41,10 @@ module.exports = {
 
     const targetRole = findClosestRole(message.guild, roleName, allowedRoles);
     if (!targetRole) return message.safeReply(`No role found matching ${roleName}`);
+
+    if (!allowedRoles.includes(targetRole.id)) {
+      return message.safeReply(`You do not have permission to add or remove the role ${targetRole.name}.`);
+    }
 
     await targetMember.roles.add(targetRole);
 
