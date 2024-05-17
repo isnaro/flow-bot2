@@ -12,6 +12,7 @@ module.exports = {
   userPermissions: ["KickMembers"],
   command: {
     enabled: true,
+    aliases: ["warns"],
     minArgsCount: 1,
     subcommands: [
       {
