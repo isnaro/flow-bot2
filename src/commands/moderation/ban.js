@@ -52,10 +52,9 @@ async function ban(issuer, target, reason) {
   try {
     const response = await banTarget(issuer, target, reason);
     if (typeof response === "boolean") {
-      await target.send(`You were banned from FLOW for: ${reason} 
-      
-      ### in case you believe the ban was unfair
-      ### Appeal your ban here : https://discord.gg/m8F8DwXu`).catch(console.error);
+      await target.send(`## You were banned from FLOW for: ${reason} 
+
+      ### in case you believe the ban was unfair, you can appeal your ban here : https://discord.gg/m8F8DwXu`).catch(console.error);
       return `${target.username} is banned!`;
     }
     if (response === "BOT_PERM") return `I do not have permission to ban ${target.username}`;
