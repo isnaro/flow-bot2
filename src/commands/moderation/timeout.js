@@ -74,11 +74,14 @@ async function timeout(issuer, target, ms, reason) {
   if (isNaN(ms)) return "Please provide a valid duration. Example: 1d/1h/1m/1s";
 
   try {
+    const endTime = new Date(Date.now() + ms);
+    const endTimeString = endTime.toLocaleString();
+
     try {
       await target.send(
         `## ⏰⏰ You have been timed out in FLOW for : ***${reason}*** ##
 
-### The timeout duration is: ${ems(ms, { long: true })}. Please follow the server rules <#1200477076113850468> to avoid further actions. ###`
+### The timeout duration is: ${ems(ms, { long: true })}. It will be automatically removed on: ${endTimeString}. Please follow the server rules <#1200477076113850468> to avoid further actions. ###`
       );
     } catch (err) {
       console.error(`Failed to send DM to ${target.user.username}:`, err);
@@ -88,7 +91,7 @@ async function timeout(issuer, target, ms, reason) {
 
     const response = await timeoutTarget(issuer, target, ms, reason);
     if (typeof response === "boolean") {
-      return `${target.user.username} is timed out!`;
+      return `${target.user.username} is timed out until ${endTimeString}!`;
     }
     switch (response) {
       case "BOT_PERM":
