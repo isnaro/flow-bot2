@@ -72,19 +72,22 @@ module.exports = {
 
 async function timeout(issuer, target, ms, reason) {
   if (isNaN(ms)) return "Please provide a valid duration. Example: 1d/1h/1m/1s";
-  
+
   try {
-    const response = await timeoutTarget(issuer, target, ms, reason);
-    if (typeof response === "boolean") {
-      try {
-        await target.send(
-          `## ⏰⏰ You have been timed out in FLOW for : ***${reason}*** ##
+    try {
+      await target.send(
+        `## ⏰⏰ You have been timed out in FLOW for : ***${reason}*** ##
 
 ### The timeout duration is: ${ems(ms, { long: true })}. Please follow the server rules <#1200477076113850468> to avoid further actions. ###`
-        );
-      } catch (err) {
-        console.error(`Failed to send DM to ${target.user.username}:`, err);
-      }
+      );
+    } catch (err) {
+      console.error(`Failed to send DM to ${target.user.username}:`, err);
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+
+    const response = await timeoutTarget(issuer, target, ms, reason);
+    if (typeof response === "boolean") {
       return `${target.user.username} is timed out!`;
     }
     switch (response) {
