@@ -1,4 +1,4 @@
-const { warnTarget, timeoutTarget, banTarget } = require("@helpers/ModUtils");
+const { warnTarget, timeoutTarget, kickTarget } = require("@helpers/ModUtils");
 const { ApplicationCommandOptionType } = require("discord.js");
 
 /**
@@ -58,7 +58,7 @@ async function warn(issuer, target, reason) {
         await target.send(
           `## ⚠️⚠️ You have been warned in FLOW for : ***${reason}*** ##
 
-### Please follow the server rules <#1200477076113850468> to avoid further actions. ###`
+### You have received your third warning and have been timed out for 72 hours. You will not be able to participate in the server during this time. ###`
         );
       } catch (err) {
         console.error(`Failed to send DM to ${target.user.username}:`, err);
@@ -80,9 +80,8 @@ async function warn(issuer, target, reason) {
 }
 
 // Automate Actions After Reaching Certain Number of Warnings
-const WARN_THRESHOLD_1 = 4;
-const WARN_THRESHOLD_2 = 7;
-const WARN_THRESHOLD_3 = 10;
+const WARN_THRESHOLD_1 = 3;
+const WARN_THRESHOLD_2 = 4;
 
 async function warnTargetWithAutoActions(issuer, target, reason) {
   const warnResponse = await warnTarget(issuer, target, reason);
@@ -91,19 +90,29 @@ async function warnTargetWithAutoActions(issuer, target, reason) {
     const memberDb = await getMember(target.guild.id, target.id);
     const warnings = memberDb.warnings + 1;
 
-    // Apply timeout after 4th warning
+    // Apply timeout after 3rd warning
     if (warnings === WARN_THRESHOLD_1) {
       const timeoutDuration = 72 * 60 * 60 * 1000; // 72 hours in milliseconds
       await timeoutTarget(issuer, target, timeoutDuration, `Auto Timeout after ${WARN_THRESHOLD_1} warnings`);
+
+      // Send DM after timeout
+      setTimeout(async () => {
+        try {
+          await target.send(
+            `## ⌛⌛ Your timeout in FLOW has ended ##
+
+### You are now able to rejoin the server and participate again. ###`
+          );
+        } catch (err) {
+          console.error(`Failed to send DM to ${target.user.username}:`, err);
+        }
+      }, timeoutDuration);
     }
-    // Apply tempban after 7th warning
-    else if (warnings === WARN_THRESHOLD_2) {
-      const tempbanDuration = 5 * 24 * 60 * 60 * 1000; // 5 days in milliseconds
-      await tempbanTarget(issuer, target, tempbanDuration, `Auto Tempban after ${WARN_THRESHOLD_2} warnings`);
-    }
-    // Apply permanent ban after 10th warning
-    else if (warnings === WARN_THRESHOLD_3) {
-      await banTarget(issuer, target, `Auto Permanent Ban after ${WARN_THRESHOLD_3} warnings`);
+
+    // Kick member after 4th warning
+    if (warnings === WARN_THRESHOLD_2) {
+      await kickTarget(issuer, target, "Auto Kick after reaching 4 warnings");
+      return true;
     }
 
     // Update warnings count
