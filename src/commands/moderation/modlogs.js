@@ -1,68 +1,5 @@
-const Discord = require("discord.js");
-const { modLogDb } = require("./moderationDatabase"); // Replace with your database handling module
-
-module.exports = {
-  name: "modlogs",
-  aliases: ["ml"],
-  description: "View moderation log for a user",
-  category: "MODERATION",
-  botPermissions: ["EMBED_LINKS"],
-  command: {
-    enabled: true,
-    usage: "<@user/user-id>",
-    minArgsCount: 1,
-  },
-  async messageRun(message, args) {
-    const userId = getUserId(args[0]);
-
-    // Check if the user has the required role
-    if (!message.member.roles.cache.has("1226167494226608198")) {
-      return message.safeReply("You do not have permission to use this command.");
-    }
-
-    const modActions = await getModActions(userId);
-    if (modActions.length === 0) {
-      return message.safeReply("No moderation actions found for this user.");
-    }
-
-    const user = message.guild.members.cache.get(userId);
-    const userName = user ? user.displayName : userId;
-
-    const embed = new Discord.MessageEmbed()
-      .setColor("#ff0000")
-      .setTitle(`Moderation Log for ${userName}`)
-      .setDescription("Here are the moderation actions for this user:");
-
-    modActions.forEach(action => {
-      embed.addField(
-        `${action.type} | ${new Date(action.timestamp).toLocaleDateString()}`,
-        `Responsible moderator: ${action.modName}\nReason: ${action.reason}`
-      );
-    });
-
-    message.safeSend({ embeds: [embed] });
-  },
-};
-
-// Function to get user ID from mention or ID string
-function getUserId(input) {
-  const userIdRegex = /<@!?(\d+)>/;
-  const match = userIdRegex.exec(input);
-  return match ? match[1] : input;
-}
-
-// Function to fetch moderation actions from database
-async function getModActions(userId) {
-  try {
-    // Fetch moderation actions from your database
-    const actions = await modLogDb.getModActions(userId);
-    return actions;
-  } catch (error) {
-    console.error("Error fetching moderation actions:", error);
-    return [];
-  }
-}
-
+const { ApplicationCommandOptionType } = require("discord.js");
+const ms = require("ms");
 
 // Initialize an empty map to store moderation logs
 const moderationLogs = new Map();
@@ -96,4 +33,70 @@ function getModActions(userId) {
   return moderationLogs.get(userId) || [];
 }
 
-module.exports = { logModAction, getModActions };
+module.exports = {
+  name: "modlogs",
+  description: "View moderation logs for a user",
+  category: "MODERATION",
+  userPermissions: [],
+  botPermissions: [],
+  command: {
+    enabled: true,
+    aliases: ["ml"],
+    usage: "<@user/user-id>",
+    minArgsCount: 1,
+  },
+  slashCommand: {
+    enabled: true,
+    options: [
+      {
+        name: "user",
+        description: "The user to view moderation logs for",
+        type: ApplicationCommandOptionType.USER,
+        required: true,
+      },
+    ],
+  },
+
+  async messageRun(message, args) {
+    const userId = message.mentions.users.first()?.id || args[0];
+    const modActions = getModActions(userId);
+    if (!modActions.length) return message.safeReply("No moderation actions found for this user.");
+
+    const embed = createModLogEmbed(message.guild, userId, modActions);
+    message.safeSend({ embeds: [embed] });
+  },
+
+  async interactionRun(interaction) {
+    const userId = interaction.options.getUser("user").id;
+    const modActions = getModActions(userId);
+    if (!modActions.length) return interaction.reply("No moderation actions found for this user.");
+
+    const embed = createModLogEmbed(interaction.guild, userId, modActions);
+    interaction.reply({ embeds: [embed] });
+  },
+};
+
+/**
+ * Function to create an embed for moderation logs
+ * @param {import('discord.js').Guild} guild - The guild object
+ * @param {string} userId - The ID of the user
+ * @param {Array} modActions - An array of moderation log entries for the user
+ * @returns {import('discord.js').MessageEmbed} - The embed object
+ */
+function createModLogEmbed(guild, userId, modActions) {
+  const user = guild.members.cache.get(userId)?.user || { tag: "Unknown User" };
+  const embed = new Discord.MessageEmbed()
+    .setTitle("Moderation Logs")
+    .setDescription(`Moderation actions for ${user.tag} (${userId})`);
+
+  modActions.forEach((action, index) => {
+    embed.addField(`Action ${index + 1}`, `
+      **Type:** ${action.actionType}
+      **Moderator:** <@${action.modId}> (${action.modName})
+      **Reason:** ${action.reason}
+      **Timestamp:** ${new Date(action.timestamp).toLocaleString()}
+    `);
+  });
+
+  return embed;
+}
