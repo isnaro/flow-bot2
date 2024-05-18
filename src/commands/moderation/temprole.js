@@ -20,49 +20,52 @@ module.exports = {
 
   async messageRun(message, args) {
     const allowedRoles = [
-      "1226167494226608198", // Only users with this role can add/remove roles
-      "1200477300093878385",
-      "1200477902387544185",
-      // Add the additional allowed roles here
-      "1228770600437284884",
-      "1230020471458762812",
-      "1229485803546087528",
-      "1228771212759666719",
-      "1229485828385013883",
-      "1229485917530751027",
-      "1229486246024318997",
-      "1230020926695800832",
-      "1230022271779868672",
-      "1240812672321065010",
-      "1226607519305302077",
-      "1237163989818015825",
+      "1200591829754712145", "1200592378671681666", "1200771376592736256",
+      "1200776755066191882", "1200776664133677159", "1230662535233929296",
+      "1230662625956859946", "1200592956831305799", "1201137840134824027",
+      "1200485716220723220", "1201137925216272424", "1201137119335292948",
+      "1201137753295962112", "1200592759438987374", "1201138020569600000",
+      "1228770600437284884", "1230020471458762812", "1229485803546087528",
+      "1228771212759666719", "1229485828385013883", "1229485917530751027",
+      "1229486246024318997", "1230020926695800832", "1230022271779868672",
+      "1240812672321065010", "1226607519305302077", "1237163989818015825",
       "1226216396690817177"
     ];
 
-    const [userIdOrMention, duration, roleName] = args;
+    const memberRoles = message.member.roles.cache.map(role => role.id);
+    let allowedToAddRemoveAllRoles = false;
+
+    if (memberRoles.includes("1226167494226608198")) {
+      // Can only add/remove allowed roles
+    } else if (
+      memberRoles.includes("1200477300093878385") ||
+      memberRoles.includes("1200477902387544185")
+    ) {
+      allowedToAddRemoveAllRoles = true; // Can add/remove any role
+    } else {
+      return message.safeReply("You do not have permission to use this command.");
+    }
+
+    const userIdOrMention = args[0];
+    const duration = args[1];
+    const roleName = args.slice(2).join(" ");
 
     const targetMember = await resolveMember(message, userIdOrMention);
     if (!targetMember) return message.safeReply(`No user found matching ${userIdOrMention}`);
 
-    const targetRole = findClosestRole(message.guild, roleName, allowedRoles);
+    const targetRole = allowedToAddRemoveAllRoles 
+      ? findClosestRole(message.guild, roleName)
+      : findClosestRole(message.guild, roleName, allowedRoles);
+      
     if (!targetRole) return message.safeReply(`No role found matching ${roleName}`);
 
-    if (!message.member.roles.cache.has(targetRole.id)) {
-      return message.safeReply("You do not have permission to add or remove this role.");
-    }
-
-    if (targetMember.roles.cache.has(targetRole.id)) {
-      await targetMember.roles.remove(targetRole);
-    } else {
-      await targetMember.roles.add(targetRole);
-    }
-
-    message.safeReply(`Successfully ${targetMember.roles.cache.has(targetRole.id) ? "added" : "removed"} ${targetRole.name} from ${targetMember.user.username} for ${duration}`);
+    await targetMember.roles.add(targetRole);
+    message.safeReply(`Successfully added ${targetRole.name} to ${targetMember.user.username} for ${duration}`);
 
     setTimeout(async () => {
       if (targetMember.roles.cache.has(targetRole.id)) {
         await targetMember.roles.remove(targetRole);
-        message.safeReply(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
+        message.channel.send(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
       }
     }, parseDuration(duration));
   }
@@ -80,20 +83,21 @@ async function resolveMember(message, userIdOrMention) {
   return targetMember;
 }
 
-function findClosestRole(guild, roleName, allowedRoles) {
+function findClosestRole(guild, roleName, allowedRoles = null) {
   let closestRole = null;
   let closestDistance = Infinity;
 
-  for (const roleId of allowedRoles) {
-    const role = guild.roles.cache.get(roleId);
-    if (role) {
-      const distance = getLevenshteinDistance(roleName.toLowerCase(), role.name.toLowerCase());
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closestRole = role;
-      }
+  const rolesToSearch = allowedRoles 
+    ? guild.roles.cache.filter(role => allowedRoles.includes(role.id)) 
+    : guild.roles.cache;
+
+  rolesToSearch.forEach(role => {
+    const distance = getLevenshteinDistance(roleName.toLowerCase(), role.name.toLowerCase());
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestRole = role;
     }
-  }
+  });
 
   return closestRole;
 }
@@ -116,8 +120,7 @@ function getLevenshteinDistance(a, b) {
       } else {
         matrix[i][j] = Math.min(
           matrix[i - 1][j - 1] + 1,
-          matrix[i][j - 1] + 1,
-          matrix[i - 1][j] + 1
+          Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
         );
       }
     }
