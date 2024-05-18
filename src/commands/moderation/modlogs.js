@@ -1,4 +1,4 @@
-const { ApplicationCommandOptionType } = require("discord.js");
+const { ApplicationCommandOptionType, MessageEmbed } = require("discord.js");
 const ms = require("ms");
 
 // Initialize an empty map to store moderation logs
@@ -30,6 +30,7 @@ function logModAction(userId, modId, modName, actionType, reason) {
  * @returns {Array} - An array of moderation log entries for the user
  */
 function getModActions(userId) {
+  console.log("Retrieving moderation actions for user:", userId);
   return moderationLogs.get(userId) || [];
 }
 
@@ -60,6 +61,7 @@ module.exports = {
   async messageRun(message, args) {
     const userId = message.mentions.users.first()?.id || args[0];
     const modActions = getModActions(userId);
+    console.log("Retrieved moderation actions:", modActions);
     if (!modActions.length) return message.safeReply("No moderation actions found for this user.");
 
     const embed = createModLogEmbed(message.guild, userId, modActions);
@@ -69,6 +71,7 @@ module.exports = {
   async interactionRun(interaction) {
     const userId = interaction.options.getUser("user").id;
     const modActions = getModActions(userId);
+    console.log("Retrieved moderation actions:", modActions);
     if (!modActions.length) return interaction.reply("No moderation actions found for this user.");
 
     const embed = createModLogEmbed(interaction.guild, userId, modActions);
@@ -85,7 +88,7 @@ module.exports = {
  */
 function createModLogEmbed(guild, userId, modActions) {
   const user = guild.members.cache.get(userId)?.user || { tag: "Unknown User" };
-  const embed = new Discord.MessageEmbed()
+  const embed = new MessageEmbed()
     .setTitle("Moderation Logs")
     .setDescription(`Moderation actions for ${user.tag} (${userId})`);
 
