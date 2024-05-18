@@ -1,4 +1,4 @@
-const { ApplicationCommandOptionType } = require("discord.js");
+const { ApplicationCommandOptionType, EmbedBuilder } = require("discord.js");
 const ms = require("ms");
 
 module.exports = {
@@ -66,6 +66,7 @@ module.exports = {
 async function mute(issuer, target, reason, duration) {
   const mutedRoleId = "1232370037843689472";
   const mutedRole = issuer.guild.roles.cache.get(mutedRoleId);
+  const logChannelId = "1225439125776367697"; // Channel to send the embed
 
   if (!mutedRole) {
     return "Muted role not found in the server.";
@@ -93,6 +94,28 @@ async function mute(issuer, target, reason, duration) {
         console.error(`Failed to unmute ${target.username} after temporary mute:`, error);
       }
     }, duration);
+
+    // Create and send the embed
+    const logChannel = issuer.guild.channels.cache.get(logChannelId);
+    if (logChannel) {
+      const embed = new EmbedBuilder()
+        .setAuthor({ name: `Moderation - Mute`, iconURL: issuer.user.displayAvatarURL() })
+        .setColor("#FF0000")
+        .setThumbnail(target.displayAvatarURL())
+        .addFields(
+          { name: "Member", value: `${target.tag} [${target.id}]`, inline: false },
+          { name: "Reason", value: reason || "No reason provided", inline: false },
+          { name: "Duration", value: ms(duration, { long: true }), inline: true },
+          { name: "Expires", value: `<t:${Math.round((Date.now() + duration) / 1000)}:R>`, inline: true }
+        )
+        .setFooter({
+          text: `Muted by ${issuer.user.tag} [${issuer.user.id}]`,
+          iconURL: issuer.user.displayAvatarURL(),
+        })
+        .setTimestamp();
+
+      await logChannel.send({ embeds: [embed] });
+    }
 
     return `${target.username} is muted for ${ms(duration, { long: true })}!`;
   } catch (error) {
