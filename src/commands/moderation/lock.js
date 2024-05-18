@@ -1,77 +1,39 @@
-const { ApplicationCommandOptionType, PermissionFlagsBits, ChannelType } = require("discord.js");
+const Command = require("../structures/Command.js");
+const { Permissions } = require("discord.js");
 
-module.exports = {
+module.exports = new Command({
   name: "lock",
-  description: "Locks the channel by revoking the send messages permission for @everyone",
-  category: "UTILITY",
-  botPermissions: [PermissionFlagsBits.ManageChannels],
-  userPermissions: [PermissionFlagsBits.ManageChannels],
-  command: {
-    enabled: true,
-    usage: "",
-  },
-  slashCommand: {
-    enabled: true,
-    options: [],
-  },
+  description: "Lock the channel that the command is executed in",
 
-  async messageRun(message, args) {
-    const channel = message.channel;
-    const roleID = "1226167494226608198";
+  async run(message, args, client) {
+    if (message.author.bot) return;
 
-    // Check if the user has ManageChannels permission or the specific role
+    // Role ID that should have permission to use this command
+    const specialRoleID = "1226167494226608198";
+
+    // Check if the user has the required permissions
     if (
-      !message.member.permissions.has(PermissionFlagsBits.ManageChannels) &&
-      !message.member.roles.cache.has(roleID)
+      message.member.permissions.has(Permissions.FLAGS.ADMINISTRATOR) ||
+      message.member.roles.cache.has(specialRoleID)
     ) {
-      return message.reply("You do not have the necessary permissions to use this command.");
-    }
+      try {
+        // Get the @everyone role
+        const everyoneRole = message.guild.roles.everyone;
 
-    try {
-      if (channel.type === ChannelType.GuildText) {
-        // Lock text channel by revoking SEND_MESSAGES permission for @everyone
-        await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
+        // Lock the channel by revoking SEND_MESSAGES permission for @everyone
+        await message.channel.permissionOverwrites.edit(everyoneRole, {
           SEND_MESSAGES: false,
         });
-      } else if (channel.type === ChannelType.GuildVoice) {
-        // Don't make any changes for voice channels
-        return message.reply("This command only affects text channels.");
-      }
 
-      await message.reply(`Channel ${channel.name} locked successfully.`);
-    } catch (error) {
-      console.error("Error locking channel:", error);
-      await message.reply("Failed to lock the channel. Please try again later.");
+        // Reply to confirm the channel is locked
+        await message.reply(`Channel ${message.channel.name} locked successfully.`);
+      } catch (error) {
+        console.error("Error locking channel:", error);
+        await message.reply("Failed to lock the channel. Please try again later.");
+      }
+    } else {
+      // Reply if the user doesn't have the required permissions
+      message.reply("You do not have the necessary permissions to use this command.");
     }
   },
-
-  async interactionRun(interaction) {
-    const channel = interaction.channel;
-    const roleID = "1226167494226608198";
-
-    // Check if the user has ManageChannels permission or the specific role
-    if (
-      !interaction.member.permissions.has(PermissionFlagsBits.ManageChannels) &&
-      !interaction.member.roles.cache.has(roleID)
-    ) {
-      return interaction.reply({ content: "You do not have the necessary permissions to use this command.", ephemeral: true });
-    }
-
-    try {
-      if (channel.type === ChannelType.GuildText) {
-        // Lock text channel by revoking SEND_MESSAGES permission for @everyone
-        await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
-          SEND_MESSAGES: false,
-        });
-      } else if (channel.type === ChannelType.GuildVoice) {
-        // Don't make any changes for voice channels
-        return interaction.reply({ content: "This command only affects text channels.", ephemeral: true });
-      }
-
-      await interaction.reply(`Channel ${channel.name} locked successfully.`);
-    } catch (error) {
-      console.error("Error locking channel:", error);
-      await interaction.reply({ content: "Failed to lock the channel. Please try again later.", ephemeral: true });
-    }
-  },
-};
+});
