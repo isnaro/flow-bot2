@@ -2,7 +2,7 @@ const { ApplicationCommandOptionType, PermissionFlagsBits, ChannelType } = requi
 
 module.exports = {
   name: "lock",
-  description: "Locks the channel by revoking send messages permission for @everyone",
+  description: "Locks the channel by revoking the send messages permission for @everyone",
   category: "UTILITY",
   botPermissions: [PermissionFlagsBits.ManageChannels],
   userPermissions: [PermissionFlagsBits.ManageChannels],
@@ -28,10 +28,15 @@ module.exports = {
     }
 
     try {
-      // Lock channel by revoking SEND_MESSAGES permission for @everyone
-      await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
-        SEND_MESSAGES: false,
-      });
+      if (channel.type === ChannelType.GuildText) {
+        // Lock text channel by revoking SEND_MESSAGES permission for @everyone
+        await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
+          SEND_MESSAGES: false,
+        });
+      } else if (channel.type === ChannelType.GuildVoice) {
+        // Don't make any changes for voice channels
+        return message.reply("This command only affects text channels.");
+      }
 
       await message.reply(`Channel ${channel.name} locked successfully.`);
     } catch (error) {
@@ -53,10 +58,15 @@ module.exports = {
     }
 
     try {
-      // Lock channel by revoking SEND_MESSAGES permission for @everyone
-      await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
-        SEND_MESSAGES: false,
-      });
+      if (channel.type === ChannelType.GuildText) {
+        // Lock text channel by revoking SEND_MESSAGES permission for @everyone
+        await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
+          SEND_MESSAGES: false,
+        });
+      } else if (channel.type === ChannelType.GuildVoice) {
+        // Don't make any changes for voice channels
+        return interaction.reply({ content: "This command only affects text channels.", ephemeral: true });
+      }
 
       await interaction.reply(`Channel ${channel.name} locked successfully.`);
     } catch (error) {
