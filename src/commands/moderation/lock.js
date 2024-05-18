@@ -1,4 +1,4 @@
-const { ApplicationCommandOptionType, PermissionFlagsBits } = require("discord.js");
+const { ApplicationCommandOptionType, PermissionFlagsBits, ChannelType } = require("discord.js");
 
 module.exports = {
   name: "lock",
@@ -28,19 +28,12 @@ module.exports = {
     }
 
     try {
-      // Lock the channel by revoking SEND_MESSAGES permission for @everyone
+      // Lock channel by revoking SEND_MESSAGES permission for @everyone
       await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
         SEND_MESSAGES: false,
       });
 
-      // If it's a voice channel, deny SEND_MESSAGES permission for @everyone
-      if (channel.type === "GUILD_VOICE") {
-        await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
-          SEND_MESSAGES: false,
-        });
-      }
-
-      await message.reply("Channel locked successfully.");
+      await message.reply(`Channel ${channel.name} locked successfully.`);
     } catch (error) {
       console.error("Error locking channel:", error);
       await message.reply("Failed to lock the channel. Please try again later.");
@@ -56,26 +49,19 @@ module.exports = {
       !interaction.member.permissions.has(PermissionFlagsBits.ManageChannels) &&
       !interaction.member.roles.cache.has(roleID)
     ) {
-      return interaction.reply("You do not have the necessary permissions to use this command.", { ephemeral: true });
+      return interaction.reply({ content: "You do not have the necessary permissions to use this command.", ephemeral: true });
     }
 
     try {
-      // Lock the channel by revoking SEND_MESSAGES permission for @everyone
+      // Lock channel by revoking SEND_MESSAGES permission for @everyone
       await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
         SEND_MESSAGES: false,
       });
 
-      // If it's a voice channel, deny SEND_MESSAGES permission for @everyone
-      if (channel.type === "GUILD_VOICE") {
-        await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
-          SEND_MESSAGES: false,
-        });
-      }
-
-      await interaction.reply("Channel locked successfully.");
+      await interaction.reply(`Channel ${channel.name} locked successfully.`);
     } catch (error) {
       console.error("Error locking channel:", error);
-      await interaction.reply("Failed to lock the channel. Please try again later.", { ephemeral: true });
+      await interaction.reply({ content: "Failed to lock the channel. Please try again later.", ephemeral: true });
     }
   },
 };
