@@ -6,7 +6,7 @@ module.exports = {
   description: "Unmutes the specified member",
   category: "MODERATION",
   botPermissions: ["ManageRoles"],
-  userPermissions: ["ManageRoles"],
+  // Removed userPermissions as it is no longer needed
   command: {
     enabled: true,
     usage: "<ID|@member> [reason]",
@@ -31,6 +31,12 @@ module.exports = {
   },
 
   async messageRun(message, args) {
+    // Check for specific role
+    const requiredRole = "1226167494226608198";
+    if (!message.member.roles.cache.has(requiredRole)) {
+      return message.safeReply("You do not have the required role to use this command.");
+    }
+
     const match = await message.client.resolveUsers(args[0], true);
     const target = match[0];
     if (!target) return message.safeReply(`No user found matching ${args[0]}`);
@@ -42,6 +48,12 @@ module.exports = {
   },
 
   async interactionRun(interaction) {
+    // Check for specific role
+    const requiredRole = "1226167494226608198";
+    if (!interaction.member.roles.cache.has(requiredRole)) {
+      return interaction.followUp("You do not have the required role to use this command.");
+    }
+
     const target = interaction.options.getUser("user");
     const reason = interaction.options.getString("reason") || "No reason provided";
 
@@ -96,39 +108,36 @@ async function unmute(issuer, target, reason) {
   }
 }
 
-
-
-
 // Automatic Unmute logging
 
+async function automaticUnmute(member, issuer, reason) {
+  const mutedRoleId = "1232370037843689472";
+  const mutedRole = member.guild.roles.cache.get(mutedRoleId);
 
-async function unmute(member, issuer, reason) {
-    const mutedRoleId = "1232370037843689472";
-    const mutedRole = member.guild.roles.cache.get(mutedRoleId);
-  
-    if (!mutedRole) {
-      console.error("Muted role not found in the server.");
-      return;
-    }
-  
-    try {
-      await member.roles.remove(mutedRole, reason);
-  
-      const embed = new Discord.MessageEmbed()
-        .setTitle("Moderation - Unmute")
-        .setDescription(`${member} has been automatically unmuted after a mute.`)
-        .setColor("#00ff00") // Green color for successful action
-        .addField("Reason", reason)
-        .addField("Responsible Moderator", `${issuer} (${issuer.id})`);
-  
-      const logChannel = member.guild.channels.cache.get("1225439125776367697");
-      if (logChannel) {
-        logChannel.send({ embeds: [embed] });
-      } else {
-        console.error("Log channel not found.");
-      }
-    } catch (error) {
-      console.error("Error unmuting user:", error);
-    }
+  if (!mutedRole) {
+    console.error("Muted role not found in the server.");
+    return;
   }
-  
+
+  try {
+    await member.roles.remove(mutedRole, reason);
+
+    const embed = new EmbedBuilder()
+      .setTitle("Moderation - Unmute")
+      .setDescription(`${member} has been automatically unmuted after a mute.`)
+      .setColor("#00ff00") // Green color for successful action
+      .addFields(
+        { name: "Reason", value: reason },
+        { name: "Responsible Moderator", value: `${issuer} (${issuer.id})` }
+      );
+
+    const logChannel = member.guild.channels.cache.get("1225439125776367697");
+    if (logChannel) {
+      logChannel.send({ embeds: [embed] });
+    } else {
+      console.error("Log channel not found.");
+    }
+  } catch (error) {
+    console.error("Error unmuting user:", error);
+  }
+}
