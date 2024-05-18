@@ -24,17 +24,17 @@ module.exports = {
       !message.member.permissions.has(PermissionFlagsBits.ManageChannels) &&
       !message.member.roles.cache.has(roleID)
     ) {
-      return message.safeReply("You do not have the necessary permissions to use this command.");
+      return message.reply("You do not have the necessary permissions to use this command.");
     }
 
     try {
       await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
         SEND_MESSAGES: false,
       });
-      await message.safeReply("Channel locked successfully.");
+      await message.reply("Channel locked successfully.");
     } catch (error) {
       console.error("Error locking channel:", error);
-      await message.safeReply("Failed to lock the channel. Please try again later.");
+      await message.reply("Failed to lock the channel. Please try again later.");
     }
   },
 
