@@ -9,6 +9,7 @@ module.exports = {
   userPermissions: ["ManageRoles"],
   command: {
     enabled: true,
+    aliases: ["bl3"],
     usage: "<ID|@member> <duration> [reason]",
     minArgsCount: 2,
   },
