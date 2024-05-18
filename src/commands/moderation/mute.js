@@ -6,7 +6,7 @@ module.exports = {
   description: "Mutes the specified member",
   category: "MODERATION",
   botPermissions: ["ManageRoles"],
-  userPermissions: ["ManageRoles"],
+  // Removed userPermissions as it is no longer needed
   command: {
     enabled: true,
     aliases: ["bl3"],
@@ -38,9 +38,23 @@ module.exports = {
   },
 
   async messageRun(message, args) {
+    // Check for specific roles
+    const requiredRoles = ["1226166868952350721", "1226166868952350721"];
+    if (!requiredRoles.some(role => message.member.roles.cache.has(role))) {
+      return message.safeReply("You do not have the required roles to use this command.");
+    }
+
     const match = await message.client.resolveUsers(args[0], true);
     const target = match[0];
     if (!target) return message.safeReply(`No user found matching ${args[0]}`);
+
+    const member = await message.guild.members.fetch(target.id).catch(() => null);
+    if (!member) return `User ${target.username} not found in the server.`;
+
+    // Check if target has a higher role than the issuer
+    if (member.roles.highest.position >= message.member.roles.highest.position) {
+      return message.safeReply("You cannot mute a member with a higher or equal role.");
+    }
 
     const durationString = args[1];
     const duration = ms(durationString);
@@ -52,7 +66,21 @@ module.exports = {
   },
 
   async interactionRun(interaction) {
+    // Check for specific roles
+    const requiredRoles = ["1226166868952350721", "1226166868952350721"];
+    if (!requiredRoles.some(role => interaction.member.roles.cache.has(role))) {
+      return interaction.followUp("You do not have the required roles to use this command.");
+    }
+
     const target = interaction.options.getUser("user");
+    const member = await interaction.guild.members.fetch(target.id).catch(() => null);
+    if (!member) return `User ${target.username} not found in the server.`;
+
+    // Check if target has a higher role than the issuer
+    if (member.roles.highest.position >= interaction.member.roles.highest.position) {
+      return interaction.followUp("You cannot mute a member with a higher or equal role.");
+    }
+
     const durationString = interaction.options.getString("duration");
     const duration = ms(durationString);
     if (!duration) return interaction.followUp(`Invalid duration specified: ${durationString}`);
