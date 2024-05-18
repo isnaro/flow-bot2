@@ -1,4 +1,4 @@
-const { ApplicationCommandOptionType, PermissionFlagsBits } = require("discord.js");
+const { ApplicationCommandOptionType, PermissionFlagsBits, ChannelType } = require("discord.js");
 
 module.exports = {
   name: "lock",
@@ -29,10 +29,16 @@ module.exports = {
     }
 
     try {
-      // Lock the channel by revoking SEND_MESSAGES permission for @everyone
-      await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
-        SEND_MESSAGES: false,
-      });
+      // Lock the channel based on its type
+      if (channel.type === ChannelType.GuildText) {
+        await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
+          SEND_MESSAGES: false,
+        });
+      } else if (channel.type === ChannelType.GuildVoice) {
+        await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
+          SEND_MESSAGES: false,
+        });
+      }
       await message.reply("Channel locked successfully.");
     } catch (error) {
       console.error("Error locking channel:", error);
@@ -53,10 +59,16 @@ module.exports = {
     }
 
     try {
-      // Lock the channel by revoking SEND_MESSAGES permission for @everyone
-      await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
-        SEND_MESSAGES: false,
-      });
+      // Lock the channel based on its type
+      if (channel.type === ChannelType.GuildText) {
+        await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
+          SEND_MESSAGES: false,
+        });
+      } else if (channel.type === ChannelType.GuildVoice) {
+        await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
+          SEND_MESSAGES: false,
+        });
+      }
       await interaction.reply("Channel locked successfully.");
     } catch (error) {
       console.error("Error locking channel:", error);
