@@ -20,25 +20,26 @@ module.exports = {
 
   async messageRun(message, args) {
     const allowedRoles = [
-      "1200591829754712145", "1200592378671681666", "1200771376592736256",
-      "1200776755066191882", "1200776664133677159", "1230662535233929296",
-      "1230662625956859946", "1200592956831305799", "1201137840134824027",
-      "1200485716220723220", "1201137925216272424", "1201137119335292948",
-      "1201137753295962112", "1200592759438987374", "1201138020569600000",
-      "1228770600437284884", "1230020471458762812", "1229485803546087528",
-      "1228771212759666719", "1229485828385013883", "1229485917530751027",
-      "1229486246024318997", "1230020926695800832", "1230022271779868672",
-      "1240812672321065010", "1226607519305302077", "1237163989818015825",
+      "1226167494226608198", // Only users with this role can add/remove roles
+      "1200477300093878385",
+      "1200477902387544185",
+      // Add the additional allowed roles here
+      "1228770600437284884",
+      "1230020471458762812",
+      "1229485803546087528",
+      "1228771212759666719",
+      "1229485828385013883",
+      "1229485917530751027",
+      "1229486246024318997",
+      "1230020926695800832",
+      "1230022271779868672",
+      "1240812672321065010",
+      "1226607519305302077",
+      "1237163989818015825",
       "1226216396690817177"
     ];
 
-    const allowedToAddAllRoles = message.member.roles.cache.has("1200477300093878385") || message.member.roles.cache.has("1200477902387544185");
-    const allowedToRemoveAllRoles = allowedToAddAllRoles;
-    const allowedToManageRoles = message.member.roles.cache.has("1226167494226608198");
-
-    const userIdOrMention = args[0];
-    const duration = args[1];
-    const roleName = args.slice(2).join(" ");
+    const [userIdOrMention, duration, roleName] = args;
 
     const targetMember = await resolveMember(message, userIdOrMention);
     if (!targetMember) return message.safeReply(`No user found matching ${userIdOrMention}`);
@@ -46,25 +47,24 @@ module.exports = {
     const targetRole = findClosestRole(message.guild, roleName, allowedRoles);
     if (!targetRole) return message.safeReply(`No role found matching ${roleName}`);
 
-    if (allowedToManageRoles) {
-      if (targetMember.roles.cache.has(targetRole.id)) {
-        if (allowedToRemoveAllRoles) {
-          await targetMember.roles.remove(targetRole);
-          return message.safeReply(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
-        } else {
-          return message.safeReply("You do not have permission to remove this role.");
-        }
-      } else {
-        if (allowedToAddAllRoles) {
-          await targetMember.roles.add(targetRole);
-          return message.safeReply(`Successfully added ${targetRole.name} to ${targetMember.user.username} for ${duration}`);
-        } else {
-          return message.safeReply("You do not have permission to add this role.");
-        }
-      }
-    } else {
-      return message.safeReply("You do not have permission to manage roles.");
+    if (!message.member.roles.cache.has(targetRole.id)) {
+      return message.safeReply("You do not have permission to add or remove this role.");
     }
+
+    if (targetMember.roles.cache.has(targetRole.id)) {
+      await targetMember.roles.remove(targetRole);
+    } else {
+      await targetMember.roles.add(targetRole);
+    }
+
+    message.safeReply(`Successfully ${targetMember.roles.cache.has(targetRole.id) ? "added" : "removed"} ${targetRole.name} from ${targetMember.user.username} for ${duration}`);
+
+    setTimeout(async () => {
+      if (targetMember.roles.cache.has(targetRole.id)) {
+        await targetMember.roles.remove(targetRole);
+        message.safeReply(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
+      }
+    }, parseDuration(duration));
   }
 };
 
@@ -116,11 +116,40 @@ function getLevenshteinDistance(a, b) {
       } else {
         matrix[i][j] = Math.min(
           matrix[i - 1][j - 1] + 1,
-          Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j] + 1
         );
       }
     }
   }
 
   return matrix[b.length][a.length];
+}
+
+function parseDuration(duration) {
+  const regex = /^(\d+)([smhdwMy])$/i;
+  const matches = regex.exec(duration);
+  if (!matches) return 0;
+
+  const num = parseInt(matches[1]);
+  const unit = matches[2].toLowerCase();
+
+  switch (unit) {
+    case 's':
+      return num * 1000;
+    case 'm':
+      return num * 60 * 1000;
+    case 'h':
+      return num * 60 * 60 * 1000;
+    case 'd':
+      return num * 24 * 60 * 60 * 1000;
+    case 'w':
+      return num * 7 * 24 * 60 * 60 * 1000;
+    case 'M':
+      return num * 30 * 24 * 60 * 60 * 1000;
+    case 'y':
+      return num * 365 * 24 * 60 * 60 * 1000;
+    default:
+      return 0;
+  }
 }
