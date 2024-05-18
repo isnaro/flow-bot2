@@ -76,8 +76,12 @@ async function mute(issuer, target, reason, duration) {
   if (!member) return `User ${target.username} not found in the server.`;
 
   try {
-    await member.roles.add(mutedRole, reason);
+    const endTime = new Date(Date.now() + duration);
+    const endTimeString = endTime.toLocaleString();
+
     const dmMessage = `### 🤐 You have been muted in **${issuer.guild.name}** for __***${ms(duration, { long: true })}***__ reason: __***${reason}***__ ###
+
+### The mute will automatically be removed on: ${endTimeString}. Please follow the server rules <#1200477076113850468> to avoid further actions. ###
 
 ### In case you believe the mute was unfair, you can appeal your mute here: [FLOW Appeal](https://discord.gg/m8F8DwXu) ###`;
 
@@ -86,6 +90,10 @@ async function mute(issuer, target, reason, duration) {
     } catch (error) {
       console.error(`Failed to send DM to ${target.username}:`, error);
     }
+
+    await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+
+    await member.roles.add(mutedRole, reason);
 
     setTimeout(async () => {
       try {
