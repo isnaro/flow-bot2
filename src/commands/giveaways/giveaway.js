@@ -64,32 +64,31 @@ module.exports = {
     ],
   },
 
-  async run(interaction, args) {
-    // Check if the command was invoked as a slash command
-    if (interaction.isCommand()) {
-      const channel = interaction.options.getChannel("channel");
-      const name = interaction.options.getString("name");
-      const duration = interaction.options.getString("duration");
-      const winners = interaction.options.getInteger("winners");
-      const description = interaction.options.getString("description");
-      const image = interaction.options.getString("image");
-      const roles = interaction.options.getRole("roles") ? interaction.options.getRole("roles").map(r => interaction.guild.roles.cache.get(r.id)) : [];
+  async messageRun(message, args) {
+    const [channelId, name, duration, winners, ...rest] = args;
+    const channel = message.guild.channels.cache.get(channelId.replace(/[<#>]/g, ""));
+    if (!channel) return message.safeReply("Invalid channel.");
 
-      const response = await startGiveaway(channel, name, duration, winners, description, image, roles);
-      await interaction.reply(response);
-    } else { // If the command was invoked with the prefix
-      const [channelId, name, duration, winners, ...rest] = args;
-      const channel = interaction.guild.channels.cache.get(channelId.replace(/[<#>]/g, ""));
-      if (!channel) return interaction.reply("Invalid channel.");
+    const description = rest.join(" ").match(/"([^"]+)"/)?.[1];
+    const image = rest.join(" ").match(/(https?:\/\/[^\s]+)/)?.[0];
+    const rolesString = rest.join(" ").replace(description, "").replace(image, "").trim();
+    const roles = rolesString ? rolesString.split(" ").map(r => message.guild.roles.cache.get(r.replace(/[<@&>]/g, ""))) : [];
 
-      const description = rest.join(" ").match(/"([^"]+)"/)?.[1];
-      const image = rest.join(" ").match(/(https?:\/\/[^\s]+)/)?.[0];
-      const rolesString = rest.join(" ").replace(description, "").replace(image, "").trim();
-      const roles = rolesString ? rolesString.split(" ").map(r => interaction.guild.roles.cache.get(r.replace(/[<@&>]/g, ""))) : [];
+    const response = await startGiveaway(channel, name, duration, winners, description, image, roles);
+    await message.safeReply(response);
+  },
 
-      const response = await startGiveaway(channel, name, duration, winners, description, image, roles);
-      await interaction.reply(response);
-    }
+  async interactionRun(interaction) {
+    const channel = interaction.options.getChannel("channel");
+    const name = interaction.options.getString("name");
+    const duration = interaction.options.getString("duration");
+    const winners = interaction.options.getInteger("winners");
+    const description = interaction.options.getString("description");
+    const image = interaction.options.getString("image");
+    const roles = interaction.options.getRole("roles") ? interaction.options.getRole("roles").map(r => interaction.guild.roles.cache.get(r.id)) : [];
+
+    const response = await startGiveaway(channel, name, duration, winners, description, image, roles);
+    await interaction.followUp(response);
   },
 };
 
@@ -160,24 +159,16 @@ function parseDuration(duration) {
 
   const value = parseInt(match[1]);
   const unit = match[2];
-  let milliseconds = 0;
-
   switch (unit) {
     case 's':
-      milliseconds = value * 1000; // seconds to milliseconds
-      break;
+      return value * 1000; // seconds to milliseconds
     case 'm':
-      milliseconds = value * 60 * 1000; // minutes to milliseconds
-      break;
+      return value * 60 * 1000; // minutes to milliseconds
     case 'h':
-      milliseconds = value * 60 * 60 * 1000; // hours to milliseconds
-      break;
+      return value * 60 * 60 * 1000; // hours to milliseconds
     case 'd':
-      milliseconds = value * 24 * 60 * 60 * 1000; // days to milliseconds
-      break;
+      return value * 24 * 60 * 60 * 1000; // days to milliseconds
     default:
       return null;
   }
-
-  return milliseconds;
 }
