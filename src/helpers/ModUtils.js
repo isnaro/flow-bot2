@@ -164,6 +164,9 @@ module.exports = class ModUtils {
 
       case "BAN":
         return ModUtils.banTarget(issuer, target, reason);
+
+      case "MUTE":
+        return mute(issuer, target, reason, duration);
     }
   }
   /**
