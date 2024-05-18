@@ -20,6 +20,7 @@ module.exports = {
     const channel = message.channel;
     const roleID = "1226167494226608198";
 
+    // Check if the user has ManageChannels permission or the specific role
     if (
       !message.member.permissions.has(PermissionFlagsBits.ManageChannels) &&
       !message.member.roles.cache.has(roleID)
@@ -28,6 +29,7 @@ module.exports = {
     }
 
     try {
+      // Lock the channel by revoking SEND_MESSAGES permission for @everyone
       await channel.permissionOverwrites.edit(message.guild.roles.everyone, {
         SEND_MESSAGES: false,
       });
@@ -42,21 +44,23 @@ module.exports = {
     const channel = interaction.channel;
     const roleID = "1226167494226608198";
 
+    // Check if the user has ManageChannels permission or the specific role
     if (
       !interaction.member.permissions.has(PermissionFlagsBits.ManageChannels) &&
       !interaction.member.roles.cache.has(roleID)
     ) {
-      return interaction.followUp("You do not have the necessary permissions to use this command.");
+      return interaction.reply("You do not have the necessary permissions to use this command.", { ephemeral: true });
     }
 
     try {
+      // Lock the channel by revoking SEND_MESSAGES permission for @everyone
       await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
         SEND_MESSAGES: false,
       });
-      await interaction.followUp("Channel locked successfully.");
+      await interaction.reply("Channel locked successfully.");
     } catch (error) {
       console.error("Error locking channel:", error);
-      await interaction.followUp("Failed to lock the channel. Please try again later.");
+      await interaction.reply("Failed to lock the channel. Please try again later.", { ephemeral: true });
     }
   },
 };
