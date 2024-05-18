@@ -27,14 +27,19 @@ module.exports = {
       "1201137753295962112", "1200592759438987374", "1201138020569600000"
     ];
 
+    const allRolesPermission = [
+      "1200477300093878385",
+      "1200477902387544185"
+    ];
+
     let allowedToAddAllRoles = false;
     let allowedToRemoveAllRoles = false;
 
     if (message.member.roles.cache.has("1226167494226608198")) {
-      allowedRoles.push("1226167494226608198");
+      allowedToAddAllRoles = false;
+      allowedToRemoveAllRoles = false;
     } else if (
-      message.member.roles.cache.has("1200477300093878385") ||
-      message.member.roles.cache.has("1200477902387544185")
+      allRolesPermission.some(role => message.member.roles.cache.has(role))
     ) {
       allowedToAddAllRoles = true;
       allowedToRemoveAllRoles = true;
@@ -52,16 +57,19 @@ module.exports = {
     const targetRole = findClosestRole(message.guild, roleName, allowedRoles);
     if (!targetRole) return message.safeReply(`No role found matching ${roleName}`);
 
-    await targetMember.roles.add(targetRole);
-
-    setTimeout(async () => {
-      if (targetMember.roles.cache.has(targetRole.id)) {
-        await targetMember.roles.remove(targetRole);
-        return message.safeReply(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
-      }
-    }, parseDuration(duration));
-    
-    return message.safeReply(`Successfully gave ${targetMember.user.username} ${targetRole.name} for ${duration}`);
+    if (allowedToAddAllRoles || allowedToRemoveAllRoles) {
+      await targetMember.roles.add(targetRole);
+      message.safeReply(`Successfully gave ${targetMember.user.username} ${targetRole.name} role for ${duration}`);
+      
+      setTimeout(async () => {
+        if (targetMember.roles.cache.has(targetRole.id)) {
+          await targetMember.roles.remove(targetRole);
+          return message.safeReply(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
+        }
+      }, parseDuration(duration));
+    } else {
+      return message.safeReply("You do not have permission to add or remove this role.");
+    }
   }
 };
 
@@ -136,10 +144,18 @@ function parseDuration(duration) {
     case 'm':
       return num * 60 * 1000;
     case 'h':
-      return num * 60 * 60 * 1000;
-    case 'd':
-      return num * 24 * 60 * 60 * 1000;
-    case 'w':
-      return num * 7 * 24 * 60 * 60 * 1000;
-    case 'M':
-      return num * 30 * 24 * 60 * 60 * 100
+      return num * 60
+      * 60 * 1000;
+      case 'd':
+        return num * 24 * 60 * 60 * 1000;
+      case 'w':
+        return num * 7 * 24 * 60 * 60 * 1000;
+      case 'M':
+        return num * 30 * 24 * 60 * 60 * 1000;
+      case 'y':
+        return num * 365 * 24 * 60 * 60 * 1000;
+      default:
+        return 0;
+    }
+  }
+  
