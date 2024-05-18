@@ -122,54 +122,53 @@ async function startGiveaway(channel, name, duration, winners, description, imag
     // Filter reactions by allowed roles
     const participants = await reactions.users.fetch();
     const filteredParticipants = participants.filter(user => {
+      if (user.bot) return false;
+      if (roles.length === 0) return true;
       const member = channel.guild.members.cache.get(user.id);
-      return roles.length === 0 || roles.some(role => member.roles.cache.has(role.id));
+      return roles.some(role => member.roles.cache.has(role.id));
     });
 
-    if (filteredParticipants.size === 0) return "No eligible participants in the giveaway.";
+    if (filteredParticipants.size === 0) return "No eligible participants found for the giveaway.";
 
-    // Randomly select winners
-    const winnersList = [];
-    for (let i = 0; i < winners; i++) {
-      if (filteredParticipants.size === 0) break;
-      const randomIndex = Math.floor(Math.random() * filteredParticipants.size);
-      const selectedWinner = Array.from(filteredParticipants.values())[randomIndex];
-      winnersList.push(selectedWinner);
-      filteredParticipants.delete(selectedWinner.id);
+    // Pick winners
+    const winnerArray = filteredParticipants.random(winners);
+    const winnersMention = winnerArray.map(w => `<@${w.id}>`).join(", ");
+
+    // Announce the winners in the channel
+    await channel.send(`Congratulations ${winnersMention}, you won the **${name}** giveaway! 🎉`);
+
+    // Send a DM to each winner
+    for (const winner of winnerArray) {
+      try {
+        await winner.send(`Congratulations! You have won the **${name}** giveaway in ${channel.guild.name}. 🎉`);
+      } catch (err) {
+        console.error(`Could not send DM to ${winner.tag}.`);
+      }
     }
 
-    // Announce winners
-    const winnersMention = winnersList.map(winner => `<@${winner.id}>`).join(", ");
-    const resultEmbed = new EmbedBuilder()
-      .setTitle(name)
-      .setDescription(`Congratulations to the winners: ${winnersMention}`)
-      .setFooter({ text: `Giveaway ended` })
-      .setTimestamp();
-
-    await channel.send({ embeds: [resultEmbed] });
-
-    return "Giveaway completed successfully.";
-
-  } catch (error) {
-    console.error(error);
-    return "An error occurred while running the giveaway.";
+    return `Giveaway ended. Winners: ${winnersMention}`;
+  } catch (err) {
+    console.error(err);
+    return "An error occurred while starting the giveaway.";
   }
 }
 
 function parseDuration(duration) {
-  const regex = /^(\d+)([smhd])$/;
-  const match = duration.match(regex);
-
+  const match = duration.match(/^(\d+)([smhd])$/);
   if (!match) return null;
 
-  const value = parseInt(match[1], 10);
+  const value = parseInt(match[1]);
   const unit = match[2];
-
   switch (unit) {
-    case 's': return value * 1000;
-    case 'm': return value * 60 * 1000;
-    case 'h': return value * 60 * 60 * 1000;
-    case 'd': return value * 24 * 60 * 60 * 1000;
-    default: return null;
+    case 's':
+      return value * 1000; // seconds to milliseconds
+    case 'm':
+      return value * 60 * 1000; // minutes to milliseconds
+    case 'h':
+      return value * 60 * 60 * 1000; // hours to milliseconds
+    case 'd':
+      return value * 24 * 60 * 60 * 1000; // days to milliseconds
+    default:
+      return null;
   }
 }
