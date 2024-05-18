@@ -61,14 +61,14 @@ module.exports = {
     const sub = args[0]?.toLowerCase();
     let response = "";
 
-    if (sub === "list") {
+    if (sub === "list" || sub === "wl") { // Added alias "wl" for "list"
       const target = (await message.guild.resolveMember(args[1], true)) || message.member;
       if (!target) return message.safeReply(`No user found matching ${args[1]}`);
       response = await listWarnings(target, message);
     }
 
     //
-    else if (sub === "clear") {
+    else if (sub === "clear" || sub === "wc") { // Added alias "wc" for "clear"
       const target = await message.guild.resolveMember(args[1], true);
       if (!target) return message.safeReply(`No user found matching ${args[1]}`);
       response = await clearWarnings(target, message);
