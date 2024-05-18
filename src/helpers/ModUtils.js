@@ -149,7 +149,7 @@ module.exports = class ModUtils {
    * @param {import('discord.js').GuildMember} issuer
    * @param {import('discord.js').GuildMember} target
    * @param {string} reason
-   * @param {"TIMEOUT"|"KICK"|"SOFTBAN"|"BAN"} action
+   * @param {"TIMEOUT"|"KICK"|"SOFTBAN"|"BAN"|"MUTE"} action
    */
   static async addModAction(issuer, target, reason, action) {
     switch (action) {
@@ -166,7 +166,7 @@ module.exports = class ModUtils {
         return ModUtils.banTarget(issuer, target, reason);
 
       case "MUTE":
-        return mute(issuer, target, reason, duration);
+        return ModUtils.timeoutTarget(issuer, target, reason, duration);
     }
   }
   /**
