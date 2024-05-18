@@ -27,25 +27,9 @@ module.exports = {
       "1201137753295962112", "1200592759438987374", "1201138020569600000"
     ];
 
-    const allRolesPermission = [
-      "1200477300093878385",
-      "1200477902387544185"
-    ];
-
-    let allowedToAddAllRoles = false;
-    let allowedToRemoveAllRoles = false;
-
-    if (message.member.roles.cache.has("1226167494226608198")) {
-      allowedToAddAllRoles = false;
-      allowedToRemoveAllRoles = false;
-    } else if (
-      allRolesPermission.some(role => message.member.roles.cache.has(role))
-    ) {
-      allowedToAddAllRoles = true;
-      allowedToRemoveAllRoles = true;
-    } else {
-      return message.safeReply("You do not have permission to use this command.");
-    }
+    const allowedToAddAllRoles = message.member.roles.cache.has("1200477300093878385") || message.member.roles.cache.has("1200477902387544185");
+    const allowedToRemoveAllRoles = allowedToAddAllRoles;
+    const allowedToManageRoles = message.member.roles.cache.has("1226167494226608198");
 
     const userIdOrMention = args[0];
     const duration = args[1];
@@ -57,18 +41,24 @@ module.exports = {
     const targetRole = findClosestRole(message.guild, roleName, allowedRoles);
     if (!targetRole) return message.safeReply(`No role found matching ${roleName}`);
 
-    if (allowedToAddAllRoles || allowedToRemoveAllRoles) {
-      await targetMember.roles.add(targetRole);
-      message.safeReply(`Successfully gave ${targetMember.user.username} ${targetRole.name} role for ${duration}`);
-      
-      setTimeout(async () => {
-        if (targetMember.roles.cache.has(targetRole.id)) {
+    if (allowedToManageRoles) {
+      if (targetMember.roles.cache.has(targetRole.id)) {
+        if (allowedToRemoveAllRoles) {
           await targetMember.roles.remove(targetRole);
           return message.safeReply(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
+        } else {
+          return message.safeReply("You do not have permission to remove this role.");
         }
-      }, parseDuration(duration));
+      } else {
+        if (allowedToAddAllRoles) {
+          await targetMember.roles.add(targetRole);
+          return message.safeReply(`Successfully added ${targetRole.name} to ${targetMember.user.username} for ${duration}`);
+        } else {
+          return message.safeReply("You do not have permission to add this role.");
+        }
+      }
     } else {
-      return message.safeReply("You do not have permission to add or remove this role.");
+      return message.safeReply("You do not have permission to manage roles.");
     }
   }
 };
@@ -129,33 +119,3 @@ function getLevenshteinDistance(a, b) {
 
   return matrix[b.length][a.length];
 }
-
-function parseDuration(duration) {
-  const regex = /^(\d+)([smhdwMy])$/i;
-  const matches = regex.exec(duration);
-  if (!matches) return 0;
-
-  const num = parseInt(matches[1]);
-  const unit = matches[2].toLowerCase();
-
-  switch (unit) {
-    case 's':
-      return num * 1000;
-    case 'm':
-      return num * 60 * 1000;
-    case 'h':
-      return num * 60
-      * 60 * 1000;
-      case 'd':
-        return num * 24 * 60 * 60 * 1000;
-      case 'w':
-        return num * 7 * 24 * 60 * 60 * 1000;
-      case 'M':
-        return num * 30 * 24 * 60 * 60 * 1000;
-      case 'y':
-        return num * 365 * 24 * 60 * 60 * 1000;
-      default:
-        return 0;
-    }
-  }
-  
