@@ -62,3 +62,38 @@ async function getModActions(userId) {
     return [];
   }
 }
+
+
+// Initialize an empty map to store moderation logs
+const moderationLogs = new Map();
+
+/**
+ * Function to log a moderation action
+ * @param {string} userId - The ID of the user being moderated
+ * @param {string} modId - The ID of the moderator performing the action
+ * @param {string} modName - The username of the moderator performing the action
+ * @param {string} actionType - The type of moderation action (e.g., "MUTE", "KICK")
+ * @param {string} reason - The reason for the moderation action
+ */
+function logModAction(userId, modId, modName, actionType, reason) {
+  const timestamp = new Date().toISOString();
+  const logEntry = { userId, modId, modName, actionType, reason, timestamp };
+  
+  // Append the log entry to the user's log array
+  if (moderationLogs.has(userId)) {
+    moderationLogs.get(userId).push(logEntry);
+  } else {
+    moderationLogs.set(userId, [logEntry]);
+  }
+}
+
+/**
+ * Function to get moderation actions for a user
+ * @param {string} userId - The ID of the user to retrieve moderation logs for
+ * @returns {Array} - An array of moderation log entries for the user
+ */
+function getModActions(userId) {
+  return moderationLogs.get(userId) || [];
+}
+
+module.exports = { logModAction, getModActions };
