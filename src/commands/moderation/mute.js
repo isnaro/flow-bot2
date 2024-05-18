@@ -38,10 +38,10 @@ module.exports = {
   },
 
   async messageRun(message, args) {
-    // Check for specific roles
-    const requiredRoles = ["1226166868952350721", "1226166868952350721"];
-    if (!requiredRoles.some(role => message.member.roles.cache.has(role))) {
-      return message.safeReply("You do not have the required roles to use this command.");
+    // Check for specific role
+    const requiredRole = "1226167494226608198";
+    if (!message.member.roles.cache.has(requiredRole)) {
+      return message.safeReply("You do not have the required role to use this command.");
     }
 
     const match = await message.client.resolveUsers(args[0], true);
@@ -66,10 +66,10 @@ module.exports = {
   },
 
   async interactionRun(interaction) {
-    // Check for specific roles
-    const requiredRoles = ["1226166868952350721", "1226166868952350721"];
-    if (!requiredRoles.some(role => interaction.member.roles.cache.has(role))) {
-      return interaction.followUp("You do not have the required roles to use this command.");
+    // Check for specific role
+    const requiredRole = "1226167494226608198";
+    if (!interaction.member.roles.cache.has(requiredRole)) {
+      return interaction.followUp("You do not have the required role to use this command.");
     }
 
     const target = interaction.options.getUser("user");
