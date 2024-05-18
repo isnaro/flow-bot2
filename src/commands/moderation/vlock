@@ -1,0 +1,27 @@
+const { ApplicationCommandOptionType } = require("discord.js");
+
+module.exports = {
+  name: "vlock",
+  description: "Locks the voice channel for @everyone by denying the 'connect' permission.",
+  category: "MODERATION",
+  userPermissions: ["MANAGE_CHANNELS"],
+  slashCommand: {
+    enabled: true,
+    options: [],
+  },
+
+  async interactionRun(interaction) {
+    const channel = interaction.member.voice.channel;
+    if (!channel) return interaction.reply("You need to be in a voice channel to use this command.");
+
+    try {
+      await channel.permissionOverwrites.create(interaction.guild.roles.everyone, {
+        CONNECT: false,
+      });
+      interaction.reply(`Voice channel locked successfully.`);
+    } catch (error) {
+      console.error("Error locking voice channel:", error);
+      interaction.reply("Failed to lock the voice channel. Please try again later.");
+    }
+  },
+};
