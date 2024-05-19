@@ -69,40 +69,55 @@ module.exports = {
       return message.safeReply("You do not have the required role to use this command.");
     }
 
-    const [channelId, name, duration, winners, ...rest] = args;
-    const channel = message.guild.channels.cache.get(channelId.replace(/[<#>]/g, ""));
-    if (!channel) return message.safeReply("Invalid channel.");
+    try {
+      const [channelId, name, duration, winners, ...rest] = args;
+      const channel = message.guild.channels.cache.get(channelId.replace(/[<#>]/g, ""));
+      if (!channel) return message.safeReply("Invalid channel.");
 
-    let description = null, image = null;
-    const roles = [];
+      let description = null, image = null;
+      const roles = [];
 
-    // Combine rest into a single string and use regex to extract components
-    const restString = rest.join(" ");
+      // Combine rest into a single string and use regex to extract components
+      let restString = rest.join(" ");
 
-    // Extract description if present
-    const descriptionMatch = restString.match(/"([^"]+)"/);
-    if (descriptionMatch) {
-      description = descriptionMatch[1];
-      restString = restString.replace(descriptionMatch[0], "").trim();
+      // Extract description if present
+      const descriptionMatch = restString.match(/"([^"]+)"/);
+      if (descriptionMatch) {
+        description = descriptionMatch[1];
+        restString = restString.replace(descriptionMatch[0], "").trim();
+      }
+
+      // Extract image URL if present
+      const imageMatch = restString.match(/(https?:\/\/[^\s]+)/);
+      if (imageMatch) {
+        image = imageMatch[0];
+        restString = restString.replace(imageMatch[0], "").trim();
+      }
+
+      // Remaining parts should be role mentions
+      const roleMatches = restString.match(/<@&\d+>/g) || [];
+      roleMatches.forEach(roleStr => {
+        const roleId = roleStr.replace(/[<@&>]/g, "");
+        const role = message.guild.roles.cache.get(roleId);
+        if (role) roles.push(role);
+      });
+
+      console.log({
+        channel,
+        name,
+        duration,
+        winners,
+        description,
+        image,
+        roles
+      });
+
+      const response = await startGiveaway(channel, name, duration, winners, description, image, roles);
+      await message.safeReply(response);
+    } catch (err) {
+      console.error("Error in messageRun:", err);
+      message.safeReply("An error occurred while running this command.");
     }
-
-    // Extract image URL if present
-    const imageMatch = restString.match(/(https?:\/\/[^\s]+)/);
-    if (imageMatch) {
-      image = imageMatch[0];
-      restString = restString.replace(imageMatch[0], "").trim();
-    }
-
-    // Remaining parts should be role mentions
-    const roleMatches = restString.match(/<@&\d+>/g) || [];
-    roleMatches.forEach(roleStr => {
-      const roleId = roleStr.replace(/[<@&>]/g, "");
-      const role = message.guild.roles.cache.get(roleId);
-      if (role) roles.push(role);
-    });
-
-    const response = await startGiveaway(channel, name, duration, winners, description, image, roles);
-    await message.safeReply(response);
   },
 
   async interactionRun(interaction) {
@@ -111,16 +126,31 @@ module.exports = {
       return interaction.followUp("You do not have the required role to use this command.");
     }
 
-    const channel = interaction.options.getChannel("channel");
-    const name = interaction.options.getString("name");
-    const duration = interaction.options.getString("duration");
-    const winners = interaction.options.getInteger("winners");
-    const description = interaction.options.getString("description");
-    const image = interaction.options.getString("image");
-    const roles = interaction.options.getRole("roles") ? interaction.options.getRole("roles").map(r => interaction.guild.roles.cache.get(r.id)) : [];
+    try {
+      const channel = interaction.options.getChannel("channel");
+      const name = interaction.options.getString("name");
+      const duration = interaction.options.getString("duration");
+      const winners = interaction.options.getInteger("winners");
+      const description = interaction.options.getString("description");
+      const image = interaction.options.getString("image");
+      const roles = interaction.options.getRole("roles") ? interaction.options.getRole("roles").map(r => interaction.guild.roles.cache.get(r.id)) : [];
 
-    const response = await startGiveaway(channel, name, duration, winners, description, image, roles);
-    await interaction.followUp(response);
+      console.log({
+        channel,
+        name,
+        duration,
+        winners,
+        description,
+        image,
+        roles
+      });
+
+      const response = await startGiveaway(channel, name, duration, winners, description, image, roles);
+      await interaction.followUp(response);
+    } catch (err) {
+      console.error("Error in interactionRun:", err);
+      interaction.followUp("An error occurred while running this command.");
+    }
   },
 };
 
@@ -171,7 +201,7 @@ async function startGiveaway(channel, name, duration, winners, description, imag
 
     return `Giveaway ended. Winners: ${winnersMention}`;
   } catch (err) {
-    console.error(err);
+    console.error("Error in startGiveaway:", err);
     return "An error occurred while starting the giveaway.";
   }
 }
