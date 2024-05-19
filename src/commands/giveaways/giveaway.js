@@ -79,18 +79,21 @@ module.exports = {
 
       let restString = rest.join(" ");
 
+      // Extract description if present
       const descriptionMatch = restString.match(/"([^"]+)"/);
       if (descriptionMatch) {
         description = descriptionMatch[1];
         restString = restString.replace(descriptionMatch[0], "").trim();
       }
 
+      // Extract image URL if present
       const imageMatch = restString.match(/(https?:\/\/[^\s]+)/);
       if (imageMatch) {
         image = imageMatch[0];
         restString = restString.replace(imageMatch[0], "").trim();
       }
 
+      // Extract role mentions
       const roleMatches = restString.match(/<@&\d+>/g) || [];
       roleMatches.forEach(roleStr => {
         const roleId = roleStr.replace(/[<@&>]/g, "");
