@@ -101,7 +101,7 @@ module.exports = {
         if (role) roles.push(role);
       });
 
-      console.log({
+      console.log("Extracted values:", {
         channel: channel.name,
         name,
         duration,
@@ -134,7 +134,7 @@ module.exports = {
       const image = interaction.options.getString("image");
       const roles = interaction.options.getRole("roles") ? interaction.options.getRole("roles").map(r => interaction.guild.roles.cache.get(r.id)) : [];
 
-      console.log({
+      console.log("Extracted values:", {
         channel: channel.name,
         name,
         duration,
