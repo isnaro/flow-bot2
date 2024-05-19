@@ -74,10 +74,11 @@ module.exports = {
       const channel = message.guild.channels.cache.get(channelId.replace(/[<#>]/g, ""));
       if (!channel) return message.safeReply("Invalid channel.");
 
+      // Initialize variables for description and image
       let description = null, image = null;
       const roles = [];
 
-      // Combine rest into a single string and use regex to extract components
+      // Join the rest of the arguments into a single string
       let restString = rest.join(" ");
 
       // Extract description if present
@@ -94,7 +95,7 @@ module.exports = {
         restString = restString.replace(imageMatch[0], "").trim();
       }
 
-      // Remaining parts should be role mentions
+      // Extract role mentions
       const roleMatches = restString.match(/<@&\d+>/g) || [];
       roleMatches.forEach(roleStr => {
         const roleId = roleStr.replace(/[<@&>]/g, "");
@@ -102,14 +103,15 @@ module.exports = {
         if (role) roles.push(role);
       });
 
+      // Log the extracted values for debugging
       console.log({
-        channel,
+        channel: channel.name,
         name,
         duration,
         winners,
         description,
         image,
-        roles
+        roles: roles.map(role => role.name),
       });
 
       const response = await startGiveaway(channel, name, duration, winners, description, image, roles);
@@ -135,14 +137,15 @@ module.exports = {
       const image = interaction.options.getString("image");
       const roles = interaction.options.getRole("roles") ? interaction.options.getRole("roles").map(r => interaction.guild.roles.cache.get(r.id)) : [];
 
+      // Log the extracted values for debugging
       console.log({
-        channel,
+        channel: channel.name,
         name,
         duration,
         winners,
         description,
         image,
-        roles
+        roles: roles.map(role => role.name),
       });
 
       const response = await startGiveaway(channel, name, duration, winners, description, image, roles);
