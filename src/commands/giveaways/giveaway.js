@@ -73,22 +73,31 @@ module.exports = {
     const channel = message.guild.channels.cache.get(channelId.replace(/[<#>]/g, ""));
     if (!channel) return message.safeReply("Invalid channel.");
 
-    let description, image;
+    let description = null, image = null;
     const roles = [];
-    const descriptionMatch = rest.join(" ").match(/"([^"]+)"/);
+
+    // Combine rest into a single string and use regex to extract components
+    const restString = rest.join(" ");
+
+    // Extract description if present
+    const descriptionMatch = restString.match(/"([^"]+)"/);
     if (descriptionMatch) {
       description = descriptionMatch[1];
-      rest.splice(rest.indexOf(descriptionMatch[0]), 1);
+      restString = restString.replace(descriptionMatch[0], "").trim();
     }
 
-    const imageMatch = rest.join(" ").match(/(https?:\/\/[^\s]+)/);
+    // Extract image URL if present
+    const imageMatch = restString.match(/(https?:\/\/[^\s]+)/);
     if (imageMatch) {
       image = imageMatch[0];
-      rest.splice(rest.indexOf(imageMatch[0]), 1);
+      restString = restString.replace(imageMatch[0], "").trim();
     }
 
-    rest.forEach(item => {
-      const role = message.guild.roles.cache.get(item.replace(/[<@&>]/g, ""));
+    // Remaining parts should be role mentions
+    const roleMatches = restString.match(/<@&\d+>/g) || [];
+    roleMatches.forEach(roleStr => {
+      const roleId = roleStr.replace(/[<@&>]/g, "");
+      const role = message.guild.roles.cache.get(roleId);
       if (role) roles.push(role);
     });
 
