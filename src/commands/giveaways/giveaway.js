@@ -75,9 +75,9 @@ module.exports = {
     const channel = message.guild.channels.cache.get(channelId.replace(/[<#>]/g, ""));
     if (!channel) return message.safeReply("Invalid channel.");
 
-    const description = rest.join(" ").match(/"([^"]+)"/)?.[1];
-    const image = rest.join(" ").match(/(https?:\/\/[^\s]+)/)?.[0];
-    const rolesString = rest.join(" ").replace(description, "").replace(image, "").trim();
+    const description = rest.length > 0 ? rest.join(" ").match(/"(.*?)"/)?.[1] : null;
+    const image = rest.length > 0 ? rest.join(" ").match(/(https?:\/\/[^\s]+)/)?.[0] : null;
+    const rolesString = rest.join(" ").replace(`"${description}"`, "").replace(image, "").trim();
     const roles = rolesString ? rolesString.split(" ").map(r => message.guild.roles.cache.get(r.replace(/[<@&>]/g, ""))) : [];
 
     const response = await startGiveaway(channel, name, duration, winners, description, image, roles);
