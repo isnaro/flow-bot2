@@ -1,4 +1,4 @@
-const { ApplicationCommandOptionType, PermissionFlagsBits, EmbedBuilder } = require("discord.js");
+const { ApplicationCommandOptionType, EmbedBuilder } = require("discord.js");
 const { setTimeout } = require("timers/promises");
 
 /**
@@ -9,7 +9,7 @@ module.exports = {
   description: "Starts a new giveaway",
   category: "UTILITY",
   botPermissions: ["SendMessages", "EmbedLinks", "AddReactions"],
-  userPermissions: ["ManageGuild"],
+  // Removed userPermissions as it is no longer needed
   command: {
     enabled: true,
     usage: "<channel> <name> <duration> <winners> [description] [image] [roles...]",
@@ -65,6 +65,12 @@ module.exports = {
   },
 
   async messageRun(message, args) {
+    // Check for specific role
+    const requiredRole = "1232680926459203644";
+    if (!message.member.roles.cache.has(requiredRole)) {
+      return message.safeReply("You do not have the required role to use this command.");
+    }
+
     const [channelId, name, duration, winners, ...rest] = args;
     const channel = message.guild.channels.cache.get(channelId.replace(/[<#>]/g, ""));
     if (!channel) return message.safeReply("Invalid channel.");
@@ -79,6 +85,12 @@ module.exports = {
   },
 
   async interactionRun(interaction) {
+    // Check for specific role
+    const requiredRole = "1232680926459203644";
+    if (!interaction.member.roles.cache.has(requiredRole)) {
+      return interaction.followUp("You do not have the required role to use this command.");
+    }
+
     const channel = interaction.options.getChannel("channel");
     const name = interaction.options.getString("name");
     const duration = interaction.options.getString("duration");
