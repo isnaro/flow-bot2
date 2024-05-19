@@ -9,7 +9,6 @@ module.exports = {
   description: "Starts a new giveaway",
   category: "UTILITY",
   botPermissions: ["SendMessages", "EmbedLinks", "AddReactions"],
-  // Removed userPermissions as it is no longer needed
   command: {
     enabled: true,
     usage: "<channel> <name> <duration> <winners> [description] [image] [roles...]",
@@ -65,7 +64,6 @@ module.exports = {
   },
 
   async messageRun(message, args) {
-    // Check for specific role
     const requiredRole = "1232680926459203644";
     if (!message.member.roles.cache.has(requiredRole)) {
       return message.safeReply("You do not have the required role to use this command.");
@@ -75,17 +73,30 @@ module.exports = {
     const channel = message.guild.channels.cache.get(channelId.replace(/[<#>]/g, ""));
     if (!channel) return message.safeReply("Invalid channel.");
 
-    const description = rest.length > 0 ? rest.join(" ").match(/"(.*?)"/)?.[1] : null;
-    const image = rest.length > 0 ? rest.join(" ").match(/(https?:\/\/[^\s]+)/)?.[0] : null;
-    const rolesString = rest.join(" ").replace(`"${description}"`, "").replace(image, "").trim();
-    const roles = rolesString ? rolesString.split(" ").map(r => message.guild.roles.cache.get(r.replace(/[<@&>]/g, ""))) : [];
+    let description, image;
+    const roles = [];
+    const descriptionMatch = rest.join(" ").match(/"([^"]+)"/);
+    if (descriptionMatch) {
+      description = descriptionMatch[1];
+      rest.splice(rest.indexOf(descriptionMatch[0]), 1);
+    }
+
+    const imageMatch = rest.join(" ").match(/(https?:\/\/[^\s]+)/);
+    if (imageMatch) {
+      image = imageMatch[0];
+      rest.splice(rest.indexOf(imageMatch[0]), 1);
+    }
+
+    rest.forEach(item => {
+      const role = message.guild.roles.cache.get(item.replace(/[<@&>]/g, ""));
+      if (role) roles.push(role);
+    });
 
     const response = await startGiveaway(channel, name, duration, winners, description, image, roles);
     await message.safeReply(response);
   },
 
   async interactionRun(interaction) {
-    // Check for specific role
     const requiredRole = "1232680926459203644";
     if (!interaction.member.roles.cache.has(requiredRole)) {
       return interaction.followUp("You do not have the required role to use this command.");
@@ -106,11 +117,9 @@ module.exports = {
 
 async function startGiveaway(channel, name, duration, winners, description, image, roles) {
   try {
-    // Convert duration to milliseconds
     const durationMs = parseDuration(duration);
     if (!durationMs) return "Invalid duration format.";
 
-    // Create the embed
     const embed = new EmbedBuilder()
       .setTitle(name)
       .setDescription(description || "No description provided")
@@ -118,20 +127,16 @@ async function startGiveaway(channel, name, duration, winners, description, imag
       .setFooter({ text: `Ends in ${duration}` })
       .setTimestamp(Date.now() + durationMs);
 
-    // Send the embed and add a reaction
     const giveawayMessage = await channel.send({ embeds: [embed] });
     await giveawayMessage.react("🎉");
 
-    // Wait for the giveaway to end
     await setTimeout(durationMs);
 
-    // Fetch the message again to get the latest reactions
     const updatedMessage = await channel.messages.fetch(giveawayMessage.id);
     const reactions = updatedMessage.reactions.cache.get("🎉");
 
     if (!reactions) return "No one participated in the giveaway.";
 
-    // Filter reactions by allowed roles
     const participants = await reactions.users.fetch();
     const filteredParticipants = participants.filter(user => {
       if (user.bot) return false;
@@ -142,14 +147,11 @@ async function startGiveaway(channel, name, duration, winners, description, imag
 
     if (filteredParticipants.size === 0) return "No eligible participants found for the giveaway.";
 
-    // Pick winners
     const winnerArray = filteredParticipants.random(winners);
     const winnersMention = winnerArray.map(w => `<@${w.id}>`).join(", ");
 
-    // Announce the winners in the channel
     await channel.send(`Congratulations ${winnersMention}, you won the **${name}** giveaway! 🎉`);
 
-    // Send a DM to each winner
     for (const winner of winnerArray) {
       try {
         await winner.send(`Congratulations! You have won the **${name}** giveaway in ${channel.guild.name}. 🎉`);
@@ -173,13 +175,13 @@ function parseDuration(duration) {
   const unit = match[2];
   switch (unit) {
     case 's':
-      return value * 1000; // seconds to milliseconds
+      return value * 1000;
     case 'm':
-      return value * 60 * 1000; // minutes to milliseconds
+      return value * 60 * 1000;
     case 'h':
-      return value * 60 * 60 * 1000; // hours to milliseconds
+      return value * 60 * 60 * 1000;
     case 'd':
-      return value * 24 * 60 * 60 * 1000; // days to milliseconds
+      return value * 24 * 60 * 60 * 1000;
     default:
       return null;
   }
