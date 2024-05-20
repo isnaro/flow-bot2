@@ -1,4 +1,4 @@
-const { Message } = require("discord.js");
+const { Permissions, MessageEmbed } = require("discord.js");
 
 /**
  * @type {import("@structures/Command")}
@@ -35,6 +35,9 @@ module.exports = {
       "1200477902387544185"
     ];
 
+    const roleToNotifyRemoval = "1200771376592736256";
+    const notificationChannelId = "1201153567491358860";
+
     let canAddRoles = false;
     let canRemoveRoles = false;
 
@@ -64,7 +67,24 @@ module.exports = {
       if (targetMember.roles.cache.has(targetRole.id)) {
         if (canRemoveRoles) {
           await targetMember.roles.remove(targetRole);
-          return message.safeReply(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
+          await message.safeReply(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
+          
+          if (targetRole.id === roleToNotifyRemoval) {
+            const notificationChannel = message.guild.channels.cache.get(notificationChannelId);
+            if (notificationChannel) {
+              const embed = new MessageEmbed()
+                .setTitle("Role Removal Notification")
+                .setDescription(`Role **${targetRole.name}** has been removed from **${targetMember.user.tag}**`)
+                .addField("Removed by", message.author.tag, true)
+                .addField("User ID", targetMember.user.id, true)
+                .setThumbnail(targetMember.user.displayAvatarURL({ dynamic: true }))
+                .setTimestamp()
+                .setColor("RED");
+              await notificationChannel.send({ embeds: [embed] });
+            }
+          }
+
+          return;
         } else {
           return message.safeReply("You do not have permission to remove this role.");
         }
