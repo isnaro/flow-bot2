@@ -35,9 +35,6 @@ module.exports = {
       "1200477902387544185"
     ];
 
-    const roleToNotifyRemoval = "1200771376592736256";
-    const notificationChannelId = "1201153567491358860";
-
     let canAddRoles = false;
     let canRemoveRoles = false;
 
@@ -67,26 +64,10 @@ module.exports = {
       if (targetMember.roles.cache.has(targetRole.id)) {
         if (canRemoveRoles) {
           await targetMember.roles.remove(targetRole);
-          await message.safeReply(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
-          
-          if (targetRole.id === roleToNotifyRemoval) {
-            const notificationChannel = message.guild.channels.cache.get(notificationChannelId);
-            if (notificationChannel) {
-              const embed = new MessageEmbed()
-                .setTitle("Role Removal Notification")
-                .setDescription(`Role **${targetRole.name}** has been removed from **${targetMember.user.tag}**`)
-                .addField("Removed by", message.author.tag, true)
-                .addField("User ID", targetMember.user.id, true)
-                .setThumbnail(targetMember.user.displayAvatarURL({ dynamic: true }))
-                .setTimestamp()
-                .setColor("RED");
-              await notificationChannel.send({ embeds: [embed] });
-            } else {
-              console.error(`Notification channel with ID ${notificationChannelId} not found.`);
-            }
+          if (targetRole.id === "1200771376592736256") {
+            sendRemovalEmbed(message, targetMember, targetRole);
           }
-
-          return;
+          return message.safeReply(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
         } else {
           return message.safeReply("You do not have permission to remove this role.");
         }
@@ -159,4 +140,26 @@ function getLevenshteinDistance(a, b) {
   }
 
   return matrix[b.length][a.length];
+}
+
+async function sendRemovalEmbed(message, targetMember, targetRole) {
+  const removalChannelId = "1201153567491358860";
+  const removalChannel = message.guild.channels.cache.get(removalChannelId);
+
+  if (!removalChannel) {
+    console.error(`Removal channel with ID ${removalChannelId} not found`);
+    return;
+  }
+
+  const embed = new MessageEmbed()
+    .setTitle("Role Removed")
+    .setDescription(`A role has been removed from a user.`)
+    .addField("User", targetMember.user.tag, true)
+    .addField("Role", targetRole.name, true)
+    .addField("Moderator", message.author.tag, true)
+    .setThumbnail(targetMember.user.displayAvatarURL({ dynamic: true }))
+    .setTimestamp()
+    .setColor("#FF0000");
+
+  await removalChannel.send({ embeds: [embed] });
 }
