@@ -1,4 +1,4 @@
-const { MessageEmbed, Permissions } = require("discord.js");
+const { MessageEmbed } = require("discord.js");
 
 /**
  * @type {import("@structures/Command")}
@@ -51,23 +51,23 @@ module.exports = {
     }
 
     if (!canAddRoles && !canRemoveRoles) {
-      return message.reply("You do not have permission to use this command.");
+      return message.safeReply("You do not have permission to use this command.");
     }
 
     const userIdOrMention = args[0];
     const roleName = args.slice(1).join(" ");
 
     const targetMember = await resolveMember(message, userIdOrMention);
-    if (!targetMember) return message.reply(`No user found matching ${userIdOrMention}`);
+    if (!targetMember) return message.safeReply(`No user found matching ${userIdOrMention}`);
 
     const targetRole = findClosestRole(message.guild, roleName, allowedRoles);
-    if (!targetRole) return message.reply(`No role found matching ${roleName}`);
+    if (!targetRole) return message.safeReply(`No role found matching ${roleName}`);
 
     if (canAddRoles || canRemoveRoles) {
       if (targetMember.roles.cache.has(targetRole.id)) {
         if (canRemoveRoles) {
           await targetMember.roles.remove(targetRole);
-          await message.reply(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
+          await message.safeReply(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
           
           if (targetRole.id === roleToNotifyRemoval) {
             const notificationChannel = message.guild.channels.cache.get(notificationChannelId);
@@ -88,18 +88,18 @@ module.exports = {
 
           return;
         } else {
-          return message.reply("You do not have permission to remove this role.");
+          return message.safeReply("You do not have permission to remove this role.");
         }
       } else {
         if (canAddRoles) {
           await targetMember.roles.add(targetRole);
-          return message.reply(`Successfully added ${targetRole.name} to ${targetMember.user.username}`);
+          return message.safeReply(`Successfully added ${targetRole.name} to ${targetMember.user.username}`);
         } else {
-          return message.reply("You do not have permission to add this role.");
+          return message.safeReply("You do not have permission to add this role.");
         }
       }
     } else {
-      return message.reply("You do not have permission to add or remove this role.");
+      return message.safeReply("You do not have permission to add or remove this role.");
     }
   }
 };
