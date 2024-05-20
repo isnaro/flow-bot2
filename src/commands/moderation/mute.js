@@ -1,161 +1,162 @@
-const { ApplicationCommandOptionType, EmbedBuilder } = require("discord.js");
-const ms = require("ms");
+const { MessageEmbed } = require("discord.js");
 
+/**
+ * @type {import("@structures/Command")}
+ */
 module.exports = {
-  name: "mute",
-  description: "Mutes the specified member",
+  name: "role",
+  description: "Adds or removes a role from a user",
   category: "MODERATION",
+  userPermissions: [],
   botPermissions: ["ManageRoles"],
-  // Removed userPermissions as it is no longer needed
   command: {
     enabled: true,
-    aliases: ["bl3"],
-    usage: "<ID|@member> <duration> [reason]",
+    usage: "<user-id|@user> <role-name>",
     minArgsCount: 2,
   },
   slashCommand: {
-    enabled: true,
-    options: [
-      {
-        name: "user",
-        description: "The target member",
-        type: ApplicationCommandOptionType.User,
-        required: true,
-      },
-      {
-        name: "duration",
-        description: "Duration for the mute (e.g., 1d, 1h, 1m)",
-        type: ApplicationCommandOptionType.String,
-        required: true,
-      },
-      {
-        name: "reason",
-        description: "Reason for mute",
-        type: ApplicationCommandOptionType.String,
-        required: false,
-      },
-    ],
+    enabled: false,
   },
 
   async messageRun(message, args) {
-    // Check for specific role
-    const requiredRole = "1226167494226608198";
-    if (!message.member.roles.cache.has(requiredRole)) {
-      return message.safeReply("You do not have the required role to use this command.");
+    const allowedRoles = [
+      "1200591829754712145", "1200771376592736256",
+      "1200776755066191882", "1200776664133677159", "1230662535233929296",
+      "1230662625956859946", "1200592956831305799", "1201137840134824027",
+      "1200485716220723220", "1201137925216272424", "1201137119335292948",
+      "1201137753295962112", "1200592759438987374", "1201138020569600000", "1228818077706358904"
+    ];
+
+    const allowedToAddRoles = [
+      "1226167494226608198",
+      "1200477300093878385",
+      "1226166868952350721",
+      "1226166868952350721",
+      "1200477902387544185"
+    ];
+
+    const roleToNotifyRemoval = "1200771376592736256";
+    const notificationChannelId = "1201153567491358860";
+
+    let canAddRoles = false;
+    let canRemoveRoles = false;
+
+    // Check if the user has permission to add or remove roles
+    for (const roleId of allowedToAddRoles) {
+      if (message.member.roles.cache.has(roleId)) {
+        canAddRoles = true;
+        canRemoveRoles = true;
+        break;
+      }
     }
 
-    const match = await message.client.resolveUsers(args[0], true);
-    const target = match[0];
-    if (!target) return message.safeReply(`No user found matching ${args[0]}`);
-
-    const member = await message.guild.members.fetch(target.id).catch(() => null);
-    if (!member) return `User ${target.username} not found in the server.`;
-
-    // Check if target has a higher role than the issuer
-    if (member.roles.highest.position >= message.member.roles.highest.position) {
-      return message.safeReply("You cannot mute a member with a higher or equal role.");
+    if (!canAddRoles && !canRemoveRoles) {
+      return message.safeReply("You do not have permission to use this command.");
     }
 
-    const durationString = args[1];
-    const duration = ms(durationString);
-    if (!duration) return message.safeReply(`Invalid duration specified: ${args[1]}`);
-    const reason = args.slice(2).join(" ") || "No reason provided";
+    const userIdOrMention = args[0];
+    const roleName = args.slice(1).join(" ");
 
-    const response = await mute(message.member, target, reason, duration);
-    await message.safeReply(response);
-  },
+    const targetMember = await resolveMember(message, userIdOrMention);
+    if (!targetMember) return message.safeReply(`No user found matching ${userIdOrMention}`);
 
-  async interactionRun(interaction) {
-    // Check for specific role
-    const requiredRole = "1226167494226608198";
-    if (!interaction.member.roles.cache.has(requiredRole)) {
-      return interaction.followUp("You do not have the required role to use this command.");
+    const targetRole = findClosestRole(message.guild, roleName, allowedRoles);
+    if (!targetRole) return message.safeReply(`No role found matching ${roleName}`);
+
+    if (canAddRoles || canRemoveRoles) {
+      if (targetMember.roles.cache.has(targetRole.id)) {
+        if (canRemoveRoles) {
+          await targetMember.roles.remove(targetRole);
+          await message.safeReply(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
+          
+          if (targetRole.id === roleToNotifyRemoval) {
+            const notificationChannel = message.guild.channels.cache.get(notificationChannelId);
+            if (notificationChannel) {
+              const embed = new MessageEmbed()
+                .setTitle("Role Removal Notification")
+                .setDescription(`Role **${targetRole.name}** has been removed from **${targetMember.user.tag}**`)
+                .addField("Removed by", message.author.tag, true)
+                .addField("User ID", targetMember.user.id, true)
+                .setThumbnail(targetMember.user.displayAvatarURL({ dynamic: true }))
+                .setTimestamp()
+                .setColor("RED");
+              await notificationChannel.send({ embeds: [embed] });
+            } else {
+              console.error(`Notification channel with ID ${notificationChannelId} not found.`);
+            }
+          }
+
+          return;
+        } else {
+          return message.safeReply("You do not have permission to remove this role.");
+        }
+      } else {
+        if (canAddRoles) {
+          await targetMember.roles.add(targetRole);
+          return message.safeReply(`Successfully added ${targetRole.name} to ${targetMember.user.username}`);
+        } else {
+          return message.safeReply("You do not have permission to add this role.");
+        }
+      }
+    } else {
+      return message.safeReply("You do not have permission to add or remove this role.");
     }
-
-    const target = interaction.options.getUser("user");
-    const member = await interaction.guild.members.fetch(target.id).catch(() => null);
-    if (!member) return `User ${target.username} not found in the server.`;
-
-    // Check if target has a higher role than the issuer
-    if (member.roles.highest.position >= interaction.member.roles.highest.position) {
-      return interaction.followUp("You cannot mute a member with a higher or equal role.");
-    }
-
-    const durationString = interaction.options.getString("duration");
-    const duration = ms(durationString);
-    if (!duration) return interaction.followUp(`Invalid duration specified: ${durationString}`);
-    const reason = interaction.options.getString("reason") || "No reason provided";
-
-    const response = await mute(interaction.member, target, reason, duration);
-    await interaction.followUp(response);
-  },
+  }
 };
 
-async function mute(issuer, target, reason, duration) {
-  const mutedRoleId = "1232370037843689472";
-  const mutedRole = issuer.guild.roles.cache.get(mutedRoleId);
-  const logChannelId = "1225439125776367697"; // Channel to send the embed
+async function resolveMember(message, userIdOrMention) {
+  let targetMember;
 
-  if (!mutedRole) {
-    return "Muted role not found in the server.";
+  if (message.mentions.members.size) {
+    targetMember = message.mentions.members.first();
+  } else {
+    targetMember = await message.guild.members.fetch(userIdOrMention).catch(() => null);
   }
 
-  const member = await issuer.guild.members.fetch(target.id).catch(() => null);
-  if (!member) return `User ${target.username} not found in the server.`;
+  return targetMember;
+}
 
-  try {
-    const endTime = new Date(Date.now() + duration);
-    const endTimeString = endTime.toLocaleString();
+function findClosestRole(guild, roleName, allowedRoles) {
+  let closestRole = null;
+  let closestDistance = Infinity;
 
-    const dmMessage = `### 🤐 You have been muted in **${issuer.guild.name}** for __***${ms(duration, { long: true })}***__ reason: __***${reason}***__ ###
-
-### The mute will automatically be removed on: ${endTimeString}. Please follow the server rules <#1200477076113850468> to avoid further actions. ###
-
-### In case you believe the mute was unfair, you can appeal your mute here: [FLOW Appeal](https://discord.gg/m8F8DwXu) ###`;
-
-    try {
-      await target.send(dmMessage);
-    } catch (error) {
-      console.error(`Failed to send DM to ${target.username}:`, error);
-    }
-
-    await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
-
-    await member.roles.add(mutedRole, reason);
-
-    setTimeout(async () => {
-      try {
-        await member.roles.remove(mutedRole, "Mute duration expired");
-      } catch (error) {
-        console.error(`Failed to unmute ${target.username} after temporary mute:`, error);
+  for (const roleId of allowedRoles) {
+    const role = guild.roles.cache.get(roleId);
+    if (role) {
+      const distance = getLevenshteinDistance(roleName.toLowerCase(), role.name.toLowerCase());
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestRole = role;
       }
-    }, duration);
-
-    // Create and send the embed
-    const logChannel = issuer.guild.channels.cache.get(logChannelId);
-    if (logChannel) {
-      const embed = new EmbedBuilder()
-        .setAuthor({ name: `Moderation - Mute`, iconURL: issuer.user.displayAvatarURL() })
-        .setColor("#FF0000")
-        .setThumbnail(target.displayAvatarURL())
-        .addFields(
-          { name: "Member", value: `${target.tag} [${target.id}]`, inline: false },
-          { name: "Reason", value: reason || "No reason provided", inline: false },
-          { name: "Duration", value: ms(duration, { long: true }), inline: true },
-          { name: "Expires", value: `<t:${Math.round((Date.now() + duration) / 1000)}:R>`, inline: true }
-        )
-        .setFooter({
-          text: `Muted by ${issuer.user.tag} [${issuer.user.id}]`,
-          iconURL: issuer.user.displayAvatarURL(),
-        })
-        .setTimestamp();
-
-      await logChannel.send({ embeds: [embed] });
     }
-
-    return `${target.username} is muted for ${ms(duration, { long: true })}!`;
-  } catch (error) {
-    console.error("Error muting user:", error);
-    return "Failed to mute the user. Please try again later.";
   }
+
+  return closestRole;
+}
+
+function getLevenshteinDistance(a, b) {
+  const matrix = [];
+
+  for (let i = 0; i <= b.length; i++) {
+    matrix[i] = [i];
+  }
+
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
+        );
+      }
+    }
+  }
+
+  return matrix[b.length][a.length];
 }
