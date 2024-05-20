@@ -1,4 +1,4 @@
-const { Permissions, MessageEmbed } = require("discord.js");
+const { MessageEmbed, Permissions } = require("discord.js");
 
 /**
  * @type {import("@structures/Command")}
@@ -81,6 +81,8 @@ module.exports = {
                 .setTimestamp()
                 .setColor("RED");
               await notificationChannel.send({ embeds: [embed] });
+            } else {
+              console.error(`Notification channel with ID ${notificationChannelId} not found.`);
             }
           }
 
