@@ -31,9 +31,9 @@ module.exports = {
   },
 
   async messageRun(message, args) {
-    // Check for specific role
-    const requiredRole = "1226167494226608198";
-    if (!message.member.roles.cache.has(requiredRole)) {
+    // Check for specific roles
+    const requiredRoles = ["1226167494226608198", "1226166868952350721"];
+    if (!requiredRoles.some(role => message.member.roles.cache.has(role))) {
       return message.safeReply("You do not have the required role to use this command.");
     }
 
@@ -48,9 +48,9 @@ module.exports = {
   },
 
   async interactionRun(interaction) {
-    // Check for specific role
-    const requiredRole = "1226167494226608198";
-    if (!interaction.member.roles.cache.has(requiredRole)) {
+    // Check for specific roles
+    const requiredRoles = ["1226167494226608198", "1226166868952350721"];
+    if (!requiredRoles.some(role => interaction.member.roles.cache.has(role))) {
       return interaction.followUp("You do not have the required role to use this command.");
     }
 
@@ -141,3 +141,4 @@ async function automaticUnmute(member, issuer, reason) {
     console.error("Error unmuting user:", error);
   }
 }
+
