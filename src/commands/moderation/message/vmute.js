@@ -1,4 +1,5 @@
-const { ChannelType } = require("discord.js");
+const { ChannelType, EmbedBuilder } = require("discord.js");
+const ms = require("ms");
 
 module.exports = {
   name: "vmute",
@@ -8,7 +9,7 @@ module.exports = {
   botPermissions: ["MuteMembers"],
   command: {
     enabled: true,
-    usage: "<ID|@member> [reason] or <channel-id>",
+    usage: "<ID|@member> <reason> <period> or <channel-id> <reason>",
     minArgsCount: 1,
   },
   slashCommand: {
@@ -22,6 +23,7 @@ module.exports = {
     const memberRoles = message.member.roles.cache.map(role => role.id);
     const channelArg = args[0];
     const reason = args.slice(1).join(" ");
+    const period = args[2] ? ms(args[2]) : null; // If a period is specified, parse it into milliseconds
 
     if (channelArg.match(/^\d+$/)) { // If the argument is a channel ID
       if (!allowedRolesForChannelMute.some(role => memberRoles.includes(role))) {
@@ -40,7 +42,7 @@ module.exports = {
         return message.safeReply("There are no members to mute in the specified channel.");
       }
 
-      const response = await muteAll(message, membersToMute, reason);
+      const response = await muteAll(message, membersToMute, reason, period);
       await message.safeReply(response);
     } else { // Otherwise, treat it as a member mention or ID
       if (!allowedRolesForUserMute.some(role => memberRoles.includes(role))) {
@@ -49,23 +51,87 @@ module.exports = {
 
       const target = await message.guild.resolveMember(channelArg, true);
       if (!target) return message.safeReply(`No user found matching ${channelArg}`);
-      
-      const response = await vmute(message, target, reason);
+
+      const response = await vmute(message, target, reason, period);
       await message.safeReply(response);
     }
   },
 };
 
-async function muteAll(message, members, reason) {
+async function muteAll(message, members, reason, period) {
+  const logChannelId = "1225439125776367697"; // Log channel ID
+  const logChannel = message.guild.channels.cache.get(logChannelId);
+
   try {
     for (const member of members) {
       if (member.voice) {
         await member.voice.setMute(true, reason);
+        if (period) {
+          setTimeout(async () => {
+            await member.voice.setMute(false, "Mute duration expired");
+          }, period);
+        }
       }
     }
+
+    // Create and send the embed
+    const embed = new EmbedBuilder()
+      .setAuthor({ name: `Moderation - Voice Mute`, iconURL: message.author.displayAvatarURL() })
+      .setColor("#FF0000")
+      .setDescription(`${members.length} members have been muted in the voice channel.`)
+      .addFields(
+        { name: "Moderator", value: `${message.author.tag} [${message.author.id}]`, inline: true },
+        { name: "Reason", value: reason, inline: true },
+        { name: "Time", value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: false },
+        { name: "User IDs", value: members.map(member => member.id).join(", "), inline: false }
+      )
+      .setTimestamp();
+
+    if (logChannel) {
+      await logChannel.send({ embeds: [embed] });
+    }
+
     return `Muted ${members.length} member(s) in the channel.`;
   } catch (error) {
     console.error("Error muting members:", error);
     return "Failed to mute members. Please try again later.";
+  }
+}
+
+async function vmute(message, target, reason, period) {
+  const logChannelId = "1225439125776367697"; // Log channel ID
+  const logChannel = message.guild.channels.cache.get(logChannelId);
+
+  try {
+    if (target.voice) {
+      await target.voice.setMute(true, reason);
+      if (period) {
+        setTimeout(async () => {
+          await target.voice.setMute(false, "Mute duration expired");
+        }, period);
+      }
+    }
+
+    // Create and send the embed
+    const embed = new EmbedBuilder()
+      .setAuthor({ name: `Moderation - Voice Mute`, iconURL: message.author.displayAvatarURL() })
+      .setColor("#FF0000")
+      .setDescription(`${target.user.tag} has been muted in the voice channel.`)
+      .addFields(
+        { name: "Moderator", value: `${message.author.tag} [${message.author.id}]`, inline: true },
+        { name: "Reason", value: reason, inline: true },
+        { name: "Time", value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: false },
+        { name: "User ID", value: `${target.id}`, inline: false }
+      )
+      .setTimestamp();
+
+    if (logChannel) {
+      await logChannel.send({ embeds: [embed] });
+    }
+
+    return `${target.user.tag} has been muted.`;
+  } catch (error) {
+    console.error("Error muting member:", error);
+    return "Failed to mute the member. Please try again later.";
   }
 }
