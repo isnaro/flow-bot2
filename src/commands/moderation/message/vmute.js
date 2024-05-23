@@ -1,6 +1,9 @@
 const { ChannelType, EmbedBuilder } = require("discord.js");
 const ms = require("ms");
 
+// Map to store muted members and their unmute timeouts
+const mutedMembers = new Map();
+
 module.exports = {
   name: "vmute",
   description: "Mutes specified member's voice or all members in a voice channel",
@@ -66,10 +69,12 @@ async function muteAll(message, members, reason, duration) {
       if (member.voice) {
         await member.voice.setMute(true, reason);
         if (duration) {
-          setTimeout(async () => {
+          const unmuteTimeout = setTimeout(async () => {
             await member.voice.setMute(false, "Mute duration expired");
             await logUnmute(member, message.author, "Mute duration expired");
+            mutedMembers.delete(member.id);
           }, duration);
+          mutedMembers.set(member.id, unmuteTimeout);
         }
       }
     }
@@ -89,10 +94,12 @@ async function vmute(message, target, reason, duration) {
       await target.voice.setMute(true, reason);
 
       if (duration) {
-        setTimeout(async () => {
+        const unmuteTimeout = setTimeout(async () => {
           await target.voice.setMute(false, "Mute duration expired");
           await logUnmute(target, message.author, "Mute duration expired");
+          mutedMembers.delete(target.id);
         }, duration);
+        mutedMembers.set(target.id, unmuteTimeout);
       }
 
       // Create and send the embed
