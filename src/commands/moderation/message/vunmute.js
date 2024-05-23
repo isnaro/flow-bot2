@@ -1,5 +1,4 @@
-const vunmute = require("../shared/vunmute");
-const { ChannelType } = require("discord.js");
+const { ChannelType, EmbedBuilder } = require("discord.js");
 
 module.exports = {
   name: "vunmute",
@@ -25,7 +24,7 @@ module.exports = {
     }
 
     const channelArg = args[0];
-    const reason = args.slice(1).join(" ");
+    const reason = args.slice(1).join(" ") || "No reason provided";
 
     // If the argument is a channel ID
     if (channelArg.match(/^\d+$/)) {
@@ -44,7 +43,7 @@ module.exports = {
       const response = await unmuteAll(message, membersToUnmute, reason);
       await message.safeReply(response);
     } else { // Otherwise, treat it as a member mention or ID
-      const target = await message.guild.resolveMember(channelArg, true);
+      const target = await message.guild.members.fetch(channelArg).catch(() => null);
       if (!target) return message.safeReply(`No user found matching ${channelArg}`);
       
       const response = await vunmute(message, target, reason);
@@ -62,5 +61,39 @@ async function unmuteAll(message, members, reason) {
   } catch (error) {
     console.error("Error unmuting members:", error);
     return "Failed to unmute members. Please try again later.";
+  }
+}
+
+async function vunmute(message, target, reason) {
+  const logChannelId = "1225439125776367697"; // Log channel ID
+  const logChannel = message.guild.channels.cache.get(logChannelId);
+
+  try {
+    if (target.voice) {
+      await target.voice.setMute(false, reason);
+    }
+
+    // Create and send the embed
+    const embed = new EmbedBuilder()
+      .setAuthor({ name: `Moderation - Voice Unmute`, iconURL: message.author.displayAvatarURL() })
+      .setColor("#00FF00")
+      .setThumbnail(target.user.displayAvatarURL())
+      .setDescription(`${target.user.tag} has been unmuted in the voice channel.`)
+      .addFields(
+        { name: "Moderator", value: `${message.author.tag} [${message.author.id}]`, inline: true },
+        { name: "Reason", value: reason, inline: true },
+        { name: "Time", value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: false },
+        { name: "User ID", value: `${target.id}`, inline: false }
+      )
+      .setTimestamp();
+
+    if (logChannel) {
+      await logChannel.send({ embeds: [embed] });
+    }
+
+    return `${target.user.tag} has been unmuted.`;
+  } catch (error) {
+    console.error("Error unmuting member:", error);
+    return "Failed to unmute the member. Please try again later.";
   }
 }

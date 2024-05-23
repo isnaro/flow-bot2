@@ -22,7 +22,7 @@ module.exports = {
 
     const memberRoles = message.member.roles.cache.map(role => role.id);
     const channelArg = args[0];
-    const reason = args.slice(1).join(" ");
+    const reason = args[1];
     const period = args[2] ? ms(args[2]) : null; // If a period is specified, parse it into milliseconds
 
     if (channelArg.match(/^\d+$/)) { // If the argument is a channel ID
@@ -49,7 +49,7 @@ module.exports = {
         return message.safeReply("You do not have permission to use user-based mute.");
       }
 
-      const target = await message.guild.resolveMember(channelArg, true);
+      const target = await message.guild.members.fetch(channelArg).catch(() => null);
       if (!target) return message.safeReply(`No user found matching ${channelArg}`);
 
       const response = await vmute(message, target, reason, period);
@@ -69,6 +69,7 @@ async function muteAll(message, members, reason, period) {
         if (period) {
           setTimeout(async () => {
             await member.voice.setMute(false, "Mute duration expired");
+            await logUnmute(member, "Automatic unmute after duration expired");
           }, period);
         }
       }
@@ -108,6 +109,7 @@ async function vmute(message, target, reason, period) {
       if (period) {
         setTimeout(async () => {
           await target.voice.setMute(false, "Mute duration expired");
+          await logUnmute(target, "Automatic unmute after duration expired");
         }, period);
       }
     }
@@ -116,6 +118,7 @@ async function vmute(message, target, reason, period) {
     const embed = new EmbedBuilder()
       .setAuthor({ name: `Moderation - Voice Mute`, iconURL: message.author.displayAvatarURL() })
       .setColor("#FF0000")
+      .setThumbnail(target.user.displayAvatarURL())
       .setDescription(`${target.user.tag} has been muted in the voice channel.`)
       .addFields(
         { name: "Moderator", value: `${message.author.tag} [${message.author.id}]`, inline: true },
@@ -133,5 +136,31 @@ async function vmute(message, target, reason, period) {
   } catch (error) {
     console.error("Error muting member:", error);
     return "Failed to mute the member. Please try again later.";
+  }
+}
+
+async function logUnmute(member, reason) {
+  const logChannelId = "1225439125776367697"; // Log channel ID
+  const logChannel = member.guild.channels.cache.get(logChannelId);
+
+  try {
+    // Create and send the embed
+    const embed = new EmbedBuilder()
+      .setAuthor({ name: `Moderation - Voice Unmute`, iconURL: member.user.displayAvatarURL() })
+      .setColor("#00FF00")
+      .setThumbnail(member.user.displayAvatarURL())
+      .setDescription(`${member.user.tag} has been unmuted in the voice channel.`)
+      .addFields(
+        { name: "Reason", value: reason, inline: true },
+        { name: "Time", value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: false },
+        { name: "User ID", value: `${member.id}`, inline: false }
+      )
+      .setTimestamp();
+
+    if (logChannel) {
+      await logChannel.send({ embeds: [embed] });
+    }
+  } catch (error) {
+    console.error("Error logging unmute:", error);
   }
 }
