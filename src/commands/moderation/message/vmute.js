@@ -25,9 +25,9 @@ module.exports = {
 
     const memberRoles = message.member.roles.cache.map(role => role.id);
     const userOrChannelArg = args[0];
-    const reason = args.slice(1).join(" ") || "No reason provided";
-    const durationArg = args.slice(2).join(" ");
-    const duration = durationArg ? ms(durationArg) : null;
+    const reason = args.slice(1, -1).join(" ") || "No reason provided";
+    const durationArg = args[args.length - 1];
+    const duration = ms(durationArg);
 
     // If the argument is a channel ID
     if (userOrChannelArg.match(/^\d+$/) && message.guild.channels.cache.has(userOrChannelArg)) {
