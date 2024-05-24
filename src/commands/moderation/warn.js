@@ -6,7 +6,7 @@ const { ApplicationCommandOptionType } = require("discord.js");
  */
 module.exports = {
   name: "warn",
-  description: "warns the specified member",
+  description: "Warns the specified member",
   category: "MODERATION",
   userPermissions: ["KickMembers"],
   command: {
@@ -19,13 +19,13 @@ module.exports = {
     options: [
       {
         name: "user",
-        description: "the target member",
+        description: "The target member",
         type: ApplicationCommandOptionType.User,
         required: true,
       },
       {
         name: "reason",
-        description: "reason for warn",
+        description: "Reason for warn",
         type: ApplicationCommandOptionType.String,
         required: false,
       },
@@ -54,15 +54,18 @@ async function warn(issuer, target, reason) {
   try {
     const response = await warnTarget(issuer, target, reason);
     if (typeof response === "boolean") {
-      try {
-        await target.send(
-          `## ⚠️⚠️ You have been warned in FLOW for : ***${reason}*** ##
+      // Delay the sending of DM message by 1 second
+      setTimeout(async () => {
+        try {
+          await target.send(
+            `## ⚠️⚠️ You have been warned in FLOW for: **${reason}** ##\n\n`
+            + `Please follow <server rules>. If you believe the warn was unfair, create a ticket through <#1200479692927549640> or from <Flow Appeal>`
+          );
+        } catch (err) {
+          console.error(`Failed to send DM to ${target.user.username}:`, err);
+        }
+      }, 1000); // 1 second delay
 
-### You have received your third warning and have been timed out for 72 hours. You will not be able to participate in the server during this time. ###`
-        );
-      } catch (err) {
-        console.error(`Failed to send DM to ${target.user.username}:`, err);
-      }
       return `${target.user.username} has been warned!`;
     }
     switch (response) {
@@ -76,51 +79,5 @@ async function warn(issuer, target, reason) {
   } catch (error) {
     console.error("Error warning user:", error);
     return "Failed to warn the user. Please try again later.";
-  }
-}
-
-// Automate Actions After Reaching Certain Number of Warnings
-const WARN_THRESHOLD_1 = 3;
-const WARN_THRESHOLD_2 = 4;
-
-async function warnTargetWithAutoActions(issuer, target, reason) {
-  const warnResponse = await warnTarget(issuer, target, reason);
-
-  if (typeof warnResponse === "boolean") {
-    const memberDb = await getMember(target.guild.id, target.id);
-    const warnings = memberDb.warnings + 1;
-
-    // Apply timeout after 3rd warning
-    if (warnings === WARN_THRESHOLD_1) {
-      const timeoutDuration = 72 * 60 * 60 * 1000; // 72 hours in milliseconds
-      await timeoutTarget(issuer, target, timeoutDuration, `Auto Timeout after ${WARN_THRESHOLD_1} warnings`);
-
-      // Send DM after timeout
-      setTimeout(async () => {
-        try {
-          await target.send(
-            `## ⌛⌛ Your timeout in FLOW has ended ##
-
-### You are now able to rejoin the server and participate again. ###`
-          );
-        } catch (err) {
-          console.error(`Failed to send DM to ${target.user.username}:`, err);
-        }
-      }, timeoutDuration);
-    }
-
-    // Kick member after 4th warning
-    if (warnings === WARN_THRESHOLD_2) {
-      await kickTarget(issuer, target, "Auto Kick after reaching 4 warnings");
-      return true;
-    }
-
-    // Update warnings count
-    memberDb.warnings = warnings;
-    await memberDb.save();
-
-    return true;
-  } else {
-    return warnResponse;
   }
 }
