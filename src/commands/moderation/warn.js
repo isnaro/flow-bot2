@@ -1,5 +1,5 @@
 const { warnTarget, timeoutTarget, kickTarget } = require("@helpers/ModUtils");
-const { ApplicationCommandOptionType, EmbedBuilder } = require("discord.js");
+const { ApplicationCommandOptionType } = require("discord.js");
 
 /**
  * @type {import("@structures/Command")}
@@ -54,18 +54,11 @@ async function warn(issuer, target, reason) {
   try {
     const response = await warnTarget(issuer, target, reason);
     if (typeof response === "boolean") {
-      const warnEmbed = new EmbedBuilder()
-        .setTitle("⚠️ You have been warned in FLOW")
-        .setDescription(`**Reason:** ${reason}`)
-        .addFields(
-          { name: "Next Steps", value: "Please follow <#1200477076113850468> to avoid further actions." },
-          { name: "Appeal Process", value: "If you believe the warn was unfair, create a ticket through <#1200479692927549640> or visit [FLOW Appeal](https://discord.gg/kJFuMk6ZFS)." }
-        )
-        .setColor("YELLOW")
-        .setTimestamp();
-
       try {
-        await target.send({ embeds: [warnEmbed] });
+        await target.send(
+          `## ⚠️⚠️ You have been warned in FLOW for: **${reason}** ##\n\n`
+          + `###Please follow <#1200477076113850468> to avoid further actions. If you believe the warn was unfair, create a ticket through <#1200479692927549640> or from  [FLOW Appeal](https://discord.gg/kJFuMk6ZFS)`
+        );
       } catch (err) {
         console.error(`Failed to send DM to ${target.user.username}:`, err);
       }
@@ -103,14 +96,12 @@ async function warnTargetWithAutoActions(issuer, target, reason) {
 
       // Send DM after timeout
       setTimeout(async () => {
-        const timeoutEmbed = new EmbedBuilder()
-          .setTitle("⌛ Your timeout in FLOW has ended")
-          .setDescription("You are now able to rejoin the server and participate again.")
-          .setColor("GREEN")
-          .setTimestamp();
-
         try {
-          await target.send({ embeds: [timeoutEmbed] });
+          await target.send(
+            `## ⌛⌛ Your timeout in FLOW has ended ##
+
+### You are now able to rejoin the server and participate again. ###`
+          );
         } catch (err) {
           console.error(`Failed to send DM to ${target.user.username}:`, err);
         }
@@ -131,20 +122,4 @@ async function warnTargetWithAutoActions(issuer, target, reason) {
   } else {
     return warnResponse;
   }
-}
-
-async function warnTarget(issuer, target, reason) {
-  // Assuming this function already exists and handles the logic for issuing a warning
-}
-
-async function getMember(guildId, memberId) {
-  // Assuming this function fetches the member data from the database
-}
-
-async function timeoutTarget(issuer, target, duration, reason) {
-  // Assuming this function handles the logic for applying a timeout to a member
-}
-
-async function kickTarget(issuer, target, reason) {
-  // Assuming this function handles the logic for kicking a member from the server
 }
