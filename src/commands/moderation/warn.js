@@ -37,7 +37,12 @@ module.exports = {
   },
 
   async messageRun(message, args) {
-    const target = await message.guild.resolveMember(args[0], true);
+    let targetInput = args[0];
+    if (targetInput.startsWith("@")) {
+      targetInput = targetInput.slice(1); // Remove "@" symbol
+    }
+
+    const target = await message.guild.resolveMember(targetInput, true);
     if (!target) return message.safeReply(`No user found matching ${args[0]}`);
     const reason = args.slice(1).join(" ") || "No reason provided";
     const response = await warn(message.member, target, reason);
