@@ -1,5 +1,5 @@
 const { timeoutTarget } = require("@helpers/ModUtils");
-const { ApplicationCommandOptionType } = require("discord.js");
+const { ApplicationCommandOptionType, EmbedBuilder } = require("discord.js");
 const ems = require("enhanced-ms");
 
 /**
@@ -7,7 +7,7 @@ const ems = require("enhanced-ms");
  */
 module.exports = {
   name: "timeout",
-  description: "timeouts the specified member",
+  description: "Timeouts the specified member",
   category: "MODERATION",
   botPermissions: ["ModerateMembers"],
   userPermissions: ["ModerateMembers"],
@@ -22,19 +22,19 @@ module.exports = {
     options: [
       {
         name: "user",
-        description: "the target member",
+        description: "The target member",
         type: ApplicationCommandOptionType.User,
         required: true,
       },
       {
         name: "duration",
-        description: "the time to timeout the member for",
+        description: "The time to timeout the member for",
         type: ApplicationCommandOptionType.String,
         required: true,
       },
       {
         name: "reason",
-        description: "reason for timeout",
+        description: "Reason for timeout",
         type: ApplicationCommandOptionType.String,
         required: false,
       },
@@ -45,19 +45,19 @@ module.exports = {
     const target = await message.guild.resolveMember(args[0], true);
     if (!target) return message.safeReply(`No user found matching ${args[0]}`);
 
-    // parse time
-    const ms = ems(args[1]);
-    if (!ms) return message.safeReply("Please provide a valid duration. Example: 1d/1h/1m/1s");
+    // Parse time
+    const duration = ems(args[1]);
+    if (!duration) return message.safeReply("Please provide a valid duration. Example: 1d/1h/1m/1s");
 
     const reason = args.slice(2).join(" ").trim() || "No reason provided";
-    const response = await timeout(message.member, target, ms, reason);
+    const response = await timeout(message.member, target, duration, reason);
     await message.safeReply(response);
   },
 
   async interactionRun(interaction) {
     const user = interaction.options.getUser("user");
 
-    // parse time
+    // Parse time
     const duration = interaction.options.getString("duration");
     const ms = ems(duration);
     if (!ms) return interaction.followUp("Please provide a valid duration. Example: 1d/1h/1m/1s");
@@ -73,38 +73,59 @@ module.exports = {
 async function timeout(issuer, target, ms, reason) {
   if (isNaN(ms)) return "Please provide a valid duration. Example: 1d/1h/1m/1s";
 
+  const logChannelId = "1225439125776367697"; // Channel to send the embed
+  const endTime = new Date(Date.now() + ms);
+  const endTimeString = endTime.toLocaleString();
+
   try {
-    const endTime = new Date(Date.now() + ms);
-    const endTimeString = endTime.toLocaleString();
+    await target.send(
+      `## ⏰⏰ You have been timed out in FLOW for: ***${reason}*** ##
 
-    try {
-      await target.send(
-        `## ⏰⏰ You have been timed out in FLOW for : ***${reason}*** ##
+### The timeout duration is: ${ems(ms, { long: true })}. It will be automatically removed on: ${endTimeString}. Please follow the server rules <#1200477076113850468> to avoid further actions. ###
 
-### The timeout duration is: ${ems(ms, { long: true })}. It will be automatically removed on: ${endTimeString}. Please follow the server rules <#1200477076113850468> to avoid further actions. ###`
-      );
-    } catch (err) {
-      console.error(`Failed to send DM to ${target.user.username}:`, err);
+### In case you believe the timeout was unfair, you can appeal your timeout here: [FLOW Appeal](https://discord.gg/YuJbSBxbrX) ###`
+    );
+  } catch (err) {
+    console.error(`Failed to send DM to ${target.user.username}:`, err);
+  }
+
+  await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+
+  const response = await timeoutTarget(issuer, target, ms, reason);
+  if (typeof response === "boolean") {
+    // Send log embed
+    const logChannel = issuer.guild.channels.cache.get(logChannelId);
+    if (logChannel) {
+      const embed = new EmbedBuilder()
+        .setAuthor({ name: `Moderation - Timeout`, iconURL: issuer.user.displayAvatarURL() })
+        .setColor("#FF0000")
+        .setThumbnail(target.user.displayAvatarURL())
+        .addFields(
+          { name: "Member", value: `${target.user.tag} [${target.user.id}]`, inline: false },
+          { name: "Reason", value: reason, inline: false },
+          { name: "Duration", value: ems(ms, { long: true }), inline: true },
+          { name: "Expires", value: `<t:${Math.round((Date.now() + ms) / 1000)}:R>`, inline: true }
+        )
+        .setFooter({
+          text: `Timed out by ${issuer.user.tag} [${issuer.user.id}]`,
+          iconURL: issuer.user.displayAvatarURL(),
+        })
+        .setTimestamp();
+
+      await logChannel.send({ embeds: [embed] });
     }
 
-    await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+    return `${target.user.username} is timed out until ${endTimeString}!`;
+  }
 
-    const response = await timeoutTarget(issuer, target, ms, reason);
-    if (typeof response === "boolean") {
-      return `${target.user.username} is timed out until ${endTimeString}!`;
-    }
-    switch (response) {
-      case "BOT_PERM":
-        return `I do not have permission to timeout ${target.user.username}`;
-      case "MEMBER_PERM":
-        return `You do not have permission to timeout ${target.user.username}`;
-      case "ALREADY_TIMEOUT":
-        return `${target.user.username} is already timed out!`;
-      default:
-        return `Failed to timeout ${target.user.username}`;
-    }
-  } catch (error) {
-    console.error("Error timing out user:", error);
-    return "Failed to timeout the user. Please try again later.";
+  switch (response) {
+    case "BOT_PERM":
+      return `I do not have permission to timeout ${target.user.username}`;
+    case "MEMBER_PERM":
+      return `You do not have permission to timeout ${target.user.username}`;
+    case "ALREADY_TIMEOUT":
+      return `${target.user.username} is already timed out!`;
+    default:
+      return `Failed to timeout ${target.user.username}`;
   }
 }
