@@ -147,9 +147,12 @@ async function logUnmute(member, moderator, reason) {
       { name: "Time", value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: false },
       { name: "User ID", value: `${member.id}`, inline: false }
     )
+   
     .setTimestamp();
 
-  if (logChannel) {
-    await logChannel.send({ embeds: [embed] });
+    if (logChannel) {
+      await logChannel.send({ embeds: [embed] });
+    }
   }
-}
+  
+  
