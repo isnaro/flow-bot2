@@ -25,12 +25,12 @@ module.exports = {
 
     const memberRoles = message.member.roles.cache.map(role => role.id);
     const userOrChannelArg = args[0];
-    const reason = args.slice(1, -1).join(" ") || "No reason provided";
     const durationArg = args[args.length - 1];
     const duration = ms(durationArg);
+    const reason = duration ? args.slice(1, -1).join(" ") : args.slice(1).join(" ") || "No reason provided";
 
-    // If the argument is a channel ID
     if (userOrChannelArg.match(/^\d+$/) && message.guild.channels.cache.has(userOrChannelArg)) {
+      // If the argument is a channel ID
       if (!allowedRolesForChannelMute.some(role => memberRoles.includes(role))) {
         return message.safeReply("You do not have permission to use channel-based mute.");
       }
@@ -41,15 +41,16 @@ module.exports = {
         return message.safeReply("The specified channel is not a valid voice channel.");
       }
 
-      const membersToMute = targetChannel.members.map(member => member);
+      const membersToMute = Array.from(targetChannel.members.values());
 
       if (membersToMute.length === 0) {
         return message.safeReply("There are no members to mute in the specified channel.");
       }
 
       const response = await muteAll(message, membersToMute, reason, duration);
-      await message.safeReply(response);
-    } else { // Otherwise, treat it as a member mention or ID
+      return message.safeReply(response);
+    } else {
+      // Otherwise, treat it as a member mention or ID
       if (!allowedRolesForUserMute.some(role => memberRoles.includes(role))) {
         return message.safeReply("You do not have permission to use user-based mute.");
       }
@@ -58,7 +59,7 @@ module.exports = {
       if (!target) return message.safeReply(`No user found matching ${userOrChannelArg}`);
 
       const response = await vmute(message, target, reason, duration);
-      await message.safeReply(response);
+      return message.safeReply(response);
     }
   },
 };
@@ -66,7 +67,7 @@ module.exports = {
 async function muteAll(message, members, reason, duration) {
   try {
     for (const member of members) {
-      if (member.voice) {
+      if (member.voice.channel) {
         await member.voice.setMute(true, reason);
         if (duration) {
           const unmuteTimeout = setTimeout(async () => {
@@ -90,7 +91,7 @@ async function vmute(message, target, reason, duration) {
   const logChannel = message.guild.channels.cache.get(logChannelId);
 
   try {
-    if (target.voice) {
+    if (target.voice.channel) {
       await target.voice.setMute(true, reason);
 
       if (duration) {
@@ -121,6 +122,8 @@ async function vmute(message, target, reason, duration) {
       }
 
       return `${target.user.tag} has been muted.`;
+    } else {
+      return `${target.user.tag} is not in a voice channel.`;
     }
   } catch (error) {
     console.error("Error muting member:", error);
