@@ -12,7 +12,7 @@ module.exports = {
   botPermissions: ["MuteMembers"],
   command: {
     enabled: true,
-    usage: "<ID|@member> [reason] [duration]",
+    usage: "<ID|@member> [duration] [reason]",
     minArgsCount: 1,
   },
   slashCommand: {
@@ -26,10 +26,9 @@ module.exports = {
     const memberRoles = message.member.roles.cache.map(role => role.id);
     const userOrChannelArg = args[0];
 
-    // Identify if the last argument is a duration
-    const durationArg = args[args.length - 1];
-    const duration = ms(durationArg);
-    const reasonArgs = duration ? args.slice(1, -1) : args.slice(1);
+    // Identify if the second argument is a duration
+    const duration = ms(args[1]);
+    const reasonArgs = duration ? args.slice(2) : args.slice(1);
     const reason = reasonArgs.join(" ") || "No reason provided";
 
     if (userOrChannelArg.match(/^\d+$/) && message.guild.channels.cache.has(userOrChannelArg)) {
@@ -108,24 +107,25 @@ async function vmute(message, target, reason, duration) {
 
       // Create and send the embed
       const embed = new EmbedBuilder()
-      .setAuthor({
-        name: `${message.guild.name} Modlogs`,
-        iconURL: message.guild.iconURL({ dynamic: true }),
-      })
-      .setColor("#2f3136")
-      .setThumbnail(target.user.displayAvatarURL({ dynamic: true }))
-      .setDescription(
-        `**Member:** ${target.user.tag} (${target.id})\n` +
-        `**Action:** Voice Mute\n` +
-        `**Reason:** ${reason}\n` +
-        `**Duration:** ${duration ? ms(duration, { long: true }) : "Indefinite"}\n` +
-        `**Moderator:** ${message.author.tag} (${message.author.id})`
-      )
-      .setFooter({
-        text: `ID: ${target.id}`,
-        iconURL: target.user.displayAvatarURL({ dynamic: true }),
-      })
-      .setTimestamp();
+        .setAuthor({
+          name: `${message.guild.name} Modlogs`,
+          iconURL: message.guild.iconURL({ dynamic: true }),
+        })
+        .setColor("#2f3136")
+        .setThumbnail(target.user.displayAvatarURL({
+          dynamic: true }))
+        .setDescription(
+          `**Member:** ${target.user.tag} (${target.id})\n` +
+          `**Action:** Voice Mute\n` +
+          `**Reason:** ${reason}\n` +
+          `**Duration:** ${duration ? ms(duration, { long: true }) : "Indefinite"}\n` +
+          `**Moderator:** ${message.author.tag} (${message.author.id})`
+        )
+        .setFooter({
+          text: `ID: ${target.id}`,
+          iconURL: target.user.displayAvatarURL({ dynamic: true }),
+        })
+        .setTimestamp();
 
       if (logChannel) {
         logChannel.send({ embeds: [embed] });
