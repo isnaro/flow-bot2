@@ -1,4 +1,4 @@
-const { ApplicationCommandOptionType } = require("discord.js");
+const { ApplicationCommandOptionType, EmbedBuilder } = require("discord.js");
 const ms = require("ms");
 
 module.exports = {
@@ -60,6 +60,9 @@ module.exports = {
 };
 
 async function ban(issuer, target, reason, duration) {
+  const logChannelId = "1225439125776367697"; // Log channel ID
+  const logChannel = issuer.guild.channels.cache.get(logChannelId);
+
   try {
     const banMessage = `### 🔴🔴 You were banned from **${issuer.guild.name}** for __***${reason}***__ ###`;
 
@@ -79,6 +82,23 @@ async function ban(issuer, target, reason, duration) {
       setTimeout(async () => {
         await issuer.guild.members.ban(target, { reason });
 
+        // Send embed to log channel
+        if (logChannel) {
+          const embed = new EmbedBuilder()
+            .setTitle("User Banned")
+            .setColor("#FF0000")
+            .setThumbnail(target.displayAvatarURL())
+            .addFields(
+              { name: "User", value: `${target.tag} [${target.id}]`, inline: true },
+              { name: "Moderator", value: `${issuer.user.tag} [${issuer.id}]`, inline: true },
+              { name: "Reason", value: reason, inline: true },
+              { name: "Duration", value: ms(duration, { long: true }), inline: true },
+              { name: "Unban Date", value: unbanDateString, inline: true },
+            )
+            .setTimestamp();
+          await logChannel.send({ embeds: [embed] });
+        }
+
         setTimeout(async () => {
           try {
             await issuer.guild.members.unban(target.id, "Ban duration expired");
@@ -87,9 +107,9 @@ async function ban(issuer, target, reason, duration) {
           }
         }, duration);
 
-      }, 5000); // 5-second delay before banning
+      }, 1000); // 1-second delay before banning
 
-      return `${target.username} will be banned in 5 seconds for ${ms(duration, { long: true })}!`;
+      return `${target.username} will be banned in 1 second for ${ms(duration, { long: true })}!`;
     } else {
       try {
         await target.send(banMessage);
@@ -99,9 +119,24 @@ async function ban(issuer, target, reason, duration) {
 
       setTimeout(async () => {
         await issuer.guild.members.ban(target, { reason });
-      }, 5000); // 5-second delay before banning
 
-      return `${target.username} will be permanently banned in 5 seconds!`;
+        // Send embed to log channel
+        if (logChannel) {
+          const embed = new EmbedBuilder()
+            .setTitle("User Banned")
+            .setColor("#FF0000")
+            .setThumbnail(target.displayAvatarURL())
+            .addFields(
+              { name: "User", value: `${target.tag} [${target.id}]`, inline: true },
+              { name: "Moderator", value: `${issuer.user.tag} [${issuer.id}]`, inline: true },
+              { name: "Reason", value: reason, inline: true },
+            )
+            .setTimestamp();
+          await logChannel.send({ embeds: [embed] });
+        }
+      }, 1000); // 1-second delay before banning
+
+      return `${target.username} will be permanently banned in 1 second!`;
     }
   } catch (error) {
     console.error("Error banning user:", error);
