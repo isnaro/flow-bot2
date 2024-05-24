@@ -25,9 +25,12 @@ module.exports = {
 
     const memberRoles = message.member.roles.cache.map(role => role.id);
     const userOrChannelArg = args[0];
+
+    // Identify if the last argument is a duration
     const durationArg = args[args.length - 1];
     const duration = ms(durationArg);
-    const reason = duration ? args.slice(1, -1).join(" ") : args.slice(1).join(" ") || "No reason provided";
+    const reasonArgs = duration ? args.slice(1, -1) : args.slice(1);
+    const reason = reasonArgs.join(" ") || "No reason provided";
 
     if (userOrChannelArg.match(/^\d+$/) && message.guild.channels.cache.has(userOrChannelArg)) {
       // If the argument is a channel ID
@@ -105,29 +108,36 @@ async function vmute(message, target, reason, duration) {
 
       // Create and send the embed
       const embed = new EmbedBuilder()
-        .setAuthor({ name: `Moderation - Voice Mute`, iconURL: message.author.displayAvatarURL() })
-        .setColor("#FF0000")
-        .setThumbnail(target.user.displayAvatarURL())
-        .setDescription(`${target.user.tag} has been muted in the voice channel.`)
-        .addFields(
-          { name: "Moderator", value: `${message.author.tag} [${message.author.id}]`, inline: true },
-          { name: "Reason", value: reason, inline: true },
-          { name: "Time", value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: false },
-          { name: "User ID", value: `${target.id}`, inline: false }
-        )
-        .setTimestamp();
+      .setAuthor({
+        name: `${message.guild.name} Modlogs`,
+        iconURL: message.guild.iconURL({ dynamic: true }),
+      })
+      .setColor("#2f3136")
+      .setThumbnail(target.user.displayAvatarURL({ dynamic: true }))
+      .setDescription(
+        `**Member:** ${target.user.tag} (${target.id})\n` +
+        `**Action:** Voice Mute\n` +
+        `**Reason:** ${reason}\n` +
+        `**Duration:** ${duration ? ms(duration, { long: true }) : "Indefinite"}\n` +
+        `**Moderator:** ${message.author.tag} (${message.author.id})`
+      )
+      .setFooter({
+        text: `ID: ${target.id}`,
+        iconURL: target.user.displayAvatarURL({ dynamic: true }),
+      })
+      .setTimestamp();
 
       if (logChannel) {
-        await logChannel.send({ embeds: [embed] });
+        logChannel.send({ embeds: [embed] });
       }
 
-      return `${target.user.tag} has been muted.`;
+      return `Muted ${target.user.tag} for reason: ${reason}.`;
     } else {
       return `${target.user.tag} is not in a voice channel.`;
     }
   } catch (error) {
     console.error("Error muting member:", error);
-    return "Failed to mute the member. Please try again later.";
+    return "Failed to voice mute the member. Please try again later.";
   }
 }
 
@@ -135,21 +145,26 @@ async function logUnmute(member, moderator, reason) {
   const logChannelId = "1225439125776367697"; // Log channel ID
   const logChannel = member.guild.channels.cache.get(logChannelId);
 
-  // Create and send the embed
+  if (!logChannel) return;
+
   const embed = new EmbedBuilder()
-    .setAuthor({ name: `Moderation - Voice Unmute`, iconURL: moderator.displayAvatarURL() })
-    .setColor("#00FF00")
-    .setThumbnail(member.user.displayAvatarURL())
-    .setDescription(`${member.user.tag} has been unmuted in the voice channel.`)
-    .addFields(
-      { name: "Moderator", value: `${moderator.tag} [${moderator.id}]`, inline: true },
-      { name: "Reason", value: reason, inline: true },
-      { name: "Time", value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: false },
-      { name: "User ID", value: `${member.id}`, inline: false }
+    .setAuthor({
+      name: `${member.guild.name} Modlogs`,
+      iconURL: member.guild.iconURL({ dynamic: true }),
+    })
+    .setColor("#2f3136")
+    .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+    .setDescription(
+      `**Member:** ${member.user.tag} (${member.id})\n` +
+      `**Action:** Voice Unmute\n` +
+      `**Reason:** ${reason}\n` +
+      `**Moderator:** ${moderator.tag} (${moderator.id})`
     )
+    .setFooter({
+      text: `ID: ${member.id}`,
+      iconURL: member.user.displayAvatarURL({ dynamic: true }),
+    })
     .setTimestamp();
 
-    if (logChannel) {
-      await logChannel.send({ embeds: [embed] });
-    }
-  }
+  logChannel.send({ embeds: [embed] });
+}
