@@ -30,7 +30,7 @@ module.exports = {
     if (channelArg.match(/^\d+$/)) {
       const targetChannel = message.guild.channels.cache.get(channelArg);
 
-      if (!targetChannel || !(targetChannel.type === ChannelType.GuildVoice || targetChannel.type === ChannelType.GuildStageVoice)) {
+      if (!targetChannel || !(targetChannel.type === ChannelType.GUILD_VOICE || targetChannel.type === ChannelType.GUILD_STAGE_VOICE)) {
         return message.safeReply("The specified channel is not a valid voice channel.");
       }
 
@@ -69,7 +69,7 @@ async function vunmute(message, target, reason) {
   const logChannel = message.guild.channels.cache.get(logChannelId);
 
   try {
-    if (target.voice) {
+    if (target.voice.channel) {
       await target.voice.setMute(false, reason);
     }
 
