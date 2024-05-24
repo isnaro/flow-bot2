@@ -1,6 +1,10 @@
 const { warnTarget, timeoutTarget, kickTarget } = require("@helpers/ModUtils");
 const { ApplicationCommandOptionType } = require("discord.js");
 
+// Constants for server-specific information
+const RULES_CHANNEL_ID = "1200477076113850468"; // ID of the rules channel
+const FLOW_APPEAL_LINK = "https://discord.gg/N22QZw34VT"; // Link to the Flow Appeal
+
 /**
  * @type {import("@structures/Command")}
  */
@@ -59,7 +63,7 @@ async function warn(issuer, target, reason) {
         try {
           await target.send(
             `## ⚠️⚠️ You have been warned in FLOW for: **${reason}** ##\n\n`
-            + `Please follow <server rules>. If you believe the warn was unfair, create a ticket through <#1200479692927549640> or from <Flow Appeal>`
+            + `Please follow the server rules in <#${RULES_CHANNEL_ID}>. If you believe the warn was unfair, create a ticket through <${FLOW_APPEAL_LINK}> or from <Flow Appeal>.`
           );
         } catch (err) {
           console.error(`Failed to send DM to ${target.user.username}:`, err);
