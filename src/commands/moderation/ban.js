@@ -76,7 +76,7 @@ async function ban(issuer, target, reason, duration) {
       const unbanDateString = unbanDate.toUTCString().replace("GMT", "GMT+1");
       const durationMessage = `Duration: __***${ms(duration, { long: true })}***__. Your ban will be lifted on: **${unbanDateString}**`;
 
-      const dmMessage = `${banMessage}\n\n${durationMessage}\n\n### In case you believe the ban was unfair, you can appeal your ban here: [FLOW Appeal](https://discord.gg/m8F8DwXu) ###`;
+      const dmMessage = `${banMessage}\n\n${durationMessage}\n\n### In case you believe the ban was unfair, you can appeal your ban here: [FLOW Appeal](https://discord.gg/YuJbSBxbrX) ###`;
 
       try {
         await target.send(dmMessage);
