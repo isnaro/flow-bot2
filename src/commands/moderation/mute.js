@@ -6,7 +6,6 @@ module.exports = {
   description: "Mutes the specified member",
   category: "MODERATION",
   botPermissions: ["ManageRoles"],
-  // Removed userPermissions as it is no longer needed
   command: {
     enabled: true,
     aliases: ["bl3"],
@@ -111,7 +110,7 @@ async function mute(issuer, target, reason, duration) {
 
 ### The mute will automatically be removed on: ${endTimeString}. Please follow the server rules <#1200477076113850468> to avoid further actions. ###
 
-### In case you believe the mute was unfair, you can appeal your mute here: [FLOW Appeal](https://discord.gg/m8F8DwXu) ###`;
+### In case you believe the mute was unfair, you can appeal your mute here: [FLOW Appeal](https://discord.gg/YuJbSBxbrX) ###`;
 
     try {
       await target.send(dmMessage);
@@ -126,6 +125,24 @@ async function mute(issuer, target, reason, duration) {
     setTimeout(async () => {
       try {
         await member.roles.remove(mutedRole, "Mute duration expired");
+
+        // Send unmute embed to log channel
+        const unmuteEmbed = new EmbedBuilder()
+          .setTitle("User Unmuted")
+          .setColor("#00FF00")
+          .setThumbnail(target.displayAvatarURL())
+          .addFields(
+            { name: "User", value: `${target.tag} [${target.id}]`, inline: true },
+            { name: "Moderator", value: "System", inline: true },
+            { name: "Reason", value: "Mute duration expired", inline: true },
+            { name: "Unmute Time", value: new Date(Date.now()).toLocaleString(), inline: true }
+          )
+          .setTimestamp();
+
+        const logChannel = issuer.guild.channels.cache.get(logChannelId);
+        if (logChannel) {
+          await logChannel.send({ embeds: [unmuteEmbed] });
+        }
       } catch (error) {
         console.error(`Failed to unmute ${target.username} after temporary mute:`, error);
       }
