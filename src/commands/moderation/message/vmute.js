@@ -153,5 +153,3 @@ async function logUnmute(member, moderator, reason) {
       await logChannel.send({ embeds: [embed] });
     }
   }
-  
-  
