@@ -1,4 +1,4 @@
-const { warnTarget, timeoutTarget, kickTarget } = require("@helpers/ModUtils");
+const { warnTarget } = require("@helpers/ModUtils");
 const { ApplicationCommandOptionType } = require("discord.js");
 
 // Constants for server-specific information
@@ -42,7 +42,7 @@ module.exports = {
       targetInput = targetInput.slice(1); // Remove "@" symbol
     }
 
-    const target = await message.guild.resolveMember(targetInput, true);
+    const target = await message.guild.members.fetch(targetInput).catch(() => null);
     if (!target) return message.safeReply(`No user found matching ${args[0]}`);
     const reason = args.slice(1).join(" ") || "No reason provided";
     const response = await warn(message.member, target, reason);
@@ -52,7 +52,9 @@ module.exports = {
   async interactionRun(interaction) {
     const user = interaction.options.getUser("user");
     const reason = interaction.options.getString("reason") || "No reason provided";
-    const target = await interaction.guild.members.fetch(user.id);
+    const target = await interaction.guild.members.fetch(user.id).catch(() => null);
+
+    if (!target) return interaction.followUp(`No user found matching ${user.tag}`);
 
     const response = await warn(interaction.member, target, reason);
     await interaction.followUp(response);
