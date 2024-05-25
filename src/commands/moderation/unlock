@@ -1,27 +1,54 @@
-const { ApplicationCommandOptionType } = require("discord.js");
+const { ApplicationCommandOptionType, PermissionsBitField } = require("discord.js");
 
 module.exports = {
   name: "unlock",
-  description: "Unlocks the channel by resetting permissions to allow sending messages for @everyone.",
+  description: "Unlocks the current channel, allowing everyone to send messages",
   category: "MODERATION",
-  userPermissions: ["MANAGE_CHANNELS"],
+  botPermissions: ["ManageChannels"],
+  userPermissions: ["ManageChannels"],
+  command: {
+    enabled: true,
+    usage: "",
+    minArgsCount: 0,
+  },
   slashCommand: {
     enabled: true,
+    options: [
+      {
+        name: "channel",
+        description: "The channel to unlock (default is current channel)",
+        type: ApplicationCommandOptionType.Channel,
+        required: false,
+      },
+    ],
+  },
+
+  async messageRun(message, args) {
+    const channel = message.mentions.channels.first() || message.channel;
+    const response = await unlockChannel(channel, message.member);
+    await message.safeReply(response);
   },
 
   async interactionRun(interaction) {
-    const channel = interaction.channel;
-    if (!channel) return interaction.reply("This command must be used in a channel.");
-
-    try {
-      await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
-        SEND_MESSAGES: null,
-      });
-
-      interaction.reply("Channel unlocked.");
-    } catch (error) {
-      console.error("Error unlocking channel:", error);
-      interaction.reply("Failed to unlock the channel. Please try again later.");
-    }
+    const channel = interaction.options.getChannel("channel") || interaction.channel;
+    const response = await unlockChannel(channel, interaction.member);
+    await interaction.followUp(response);
   },
 };
+
+async function unlockChannel(channel, issuer) {
+  if (!channel.permissionsFor(issuer).has(PermissionsBitField.Flags.ManageChannels)) {
+    return "You do not have permission to manage this channel.";
+  }
+
+  try {
+    await channel.permissionOverwrites.edit(channel.guild.roles.everyone, {
+      SendMessages: true,
+    });
+
+    return `🔓 ${channel.name} has been unlocked.`;
+  } catch (error) {
+    console.error(`Failed to unlock ${channel.name}:`, error);
+    return "Failed to unlock the channel. Please try again later.";
+  }
+}
