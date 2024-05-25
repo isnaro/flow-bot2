@@ -11,7 +11,7 @@ module.exports = {
   botPermissions: ["ManageRoles"],
   command: {
     enabled: true,
-    usage: "<user-id|@user> <role-name>",
+    usage: "<user-id|@user> <role-name|role-id>",
     minArgsCount: 2,
   },
   slashCommand: {
@@ -52,13 +52,13 @@ module.exports = {
     }
 
     const userIdOrMention = args[0];
-    const roleName = args.slice(1).join(" ");
+    const roleNameOrId = args.slice(1).join(" ");
 
     const targetMember = await resolveMember(message, userIdOrMention);
     if (!targetMember) return message.safeReply(`No user found matching ${userIdOrMention}`);
 
-    const targetRole = findClosestRole(message.guild, roleName, allowedRoles);
-    if (!targetRole) return message.safeReply(`No role found matching ${roleName}`);
+    const targetRole = findClosestRole(message.guild, roleNameOrId, allowedRoles);
+    if (!targetRole) return message.safeReply(`No role found matching ${roleNameOrId}`);
 
     if (canAddRoles || canRemoveRoles) {
       if (targetMember.roles.cache.has(targetRole.id)) {
@@ -97,17 +97,20 @@ async function resolveMember(message, userIdOrMention) {
   return targetMember;
 }
 
-function findClosestRole(guild, roleName, allowedRoles) {
-  let closestRole = null;
-  let closestDistance = Infinity;
+function findClosestRole(guild, roleNameOrId, allowedRoles) {
+  let closestRole = guild.roles.cache.get(roleNameOrId);
 
-  for (const roleId of allowedRoles) {
-    const role = guild.roles.cache.get(roleId);
-    if (role) {
-      const distance = getLevenshteinDistance(roleName.toLowerCase(), role.name.toLowerCase());
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closestRole = role;
+  if (!closestRole) {
+    let closestDistance = Infinity;
+
+    for (const roleId of allowedRoles) {
+      const role = guild.roles.cache.get(roleId);
+      if (role) {
+        const distance = getLevenshteinDistance(roleNameOrId.toLowerCase(), role.name.toLowerCase());
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestRole = role;
+        }
       }
     }
   }

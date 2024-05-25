@@ -9,8 +9,8 @@ module.exports = {
   name: "timeout",
   description: "Timeouts the specified member",
   category: "MODERATION",
-  botPermissions: ["TimeoutMembers"],
-  userPermissions: ["TimeoutMembers"],
+  botPermissions: ["ModerateMembers"],
+  userPermissions: ["ModerateMembers"],
   command: {
     enabled: true,
     aliases: ["tmt"],
@@ -42,7 +42,7 @@ module.exports = {
   },
 
   async messageRun(message, args) {
-    const target = await message.guild.resolveMember(args[0], true);
+    const target = await message.guild.members.fetch(args[0]).catch(() => null);
     if (!target) return message.safeReply(`No user found matching ${args[0]}`);
 
     // Parse time
