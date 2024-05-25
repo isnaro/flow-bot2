@@ -1,19 +1,26 @@
 const { ApplicationCommandOptionType, PermissionsBitField } = require("discord.js");
+const ms = require("ms");
 
 module.exports = {
   name: "unlock",
-  description: "Unlocks the current channel, allowing everyone to send messages",
+  description: "Unlocks the current channel, allowing everyone to send messages temporarily if a duration is provided",
   category: "MODERATION",
   botPermissions: ["ManageChannels"],
   userPermissions: ["ManageChannels"],
   command: {
     enabled: true,
-    usage: "",
+    usage: "[duration]",
     minArgsCount: 0,
   },
   slashCommand: {
     enabled: true,
     options: [
+      {
+        name: "duration",
+        description: "Duration for the temporary unlock (e.g., 1h, 30m)",
+        type: ApplicationCommandOptionType.String,
+        required: false,
+      },
       {
         name: "channel",
         description: "The channel to unlock (default is current channel)",
@@ -23,20 +30,24 @@ module.exports = {
     ],
   },
 
-  async messageRun(message) {
+  async messageRun(message, args) {
+    const durationString = args[0];
+    const duration = durationString ? ms(durationString) : null;
     const channel = message.channel;
-    const response = await unlockChannel(channel, message.member);
+    const response = await unlockChannel(channel, message.member, duration);
     await message.safeReply(response);
   },
 
   async interactionRun(interaction) {
+    const durationString = interaction.options.getString("duration");
+    const duration = durationString ? ms(durationString) : null;
     const channel = interaction.options.getChannel("channel") || interaction.channel;
-    const response = await unlockChannel(channel, interaction.member);
+    const response = await unlockChannel(channel, interaction.member, duration);
     await interaction.followUp(response);
   },
 };
 
-async function unlockChannel(channel, issuer) {
+async function unlockChannel(channel, issuer, duration) {
   if (!channel.permissionsFor(issuer).has(PermissionsBitField.Flags.ManageChannels)) {
     return "You do not have permission to manage this channel.";
   }
@@ -45,6 +56,22 @@ async function unlockChannel(channel, issuer) {
     await channel.permissionOverwrites.edit(channel.guild.roles.everyone, {
       SendMessages: true,
     });
+
+    if (duration) {
+      setTimeout(async () => {
+        try {
+          await channel.permissionOverwrites.edit(channel.guild.roles.everyone, {
+            SendMessages: false,
+          });
+          await channel.send(`🔒 ${channel.name} has been automatically re-locked.`);
+        } catch (error) {
+          console.error(`Failed to re-lock ${channel.name}:`, error);
+        }
+      }, duration);
+
+      return `🔓 ${channel.name} has been temporarily unlocked for ${ms(duration, { long: true })}.`;
+    }
+
     return `🔓 ${channel.name} has been unlocked.`;
   } catch (error) {
     console.error(`Failed to unlock ${channel.name}:`, error);
