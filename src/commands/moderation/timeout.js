@@ -73,9 +73,8 @@ module.exports = {
 async function timeout(issuer, target, ms, reason) {
   if (isNaN(ms)) return "Please provide a valid duration. Example: 1d/1h/1m/1s";
 
-  const logChannelId = "1225439125776367697"; // Channel to send the embed
-  const endTime = new Date(Date.now() + ms);
-  const endTimeString = endTime.toLocaleString();
+  const endTime = new Date(Date.now() + ms + 3600000); // Adjusting to GMT+1
+  const endTimeString = endTime.toLocaleString('en-GB', { timeZone: 'Europe/London' });
 
   try {
     await target.send(
@@ -93,28 +92,6 @@ async function timeout(issuer, target, ms, reason) {
 
   const response = await timeoutTarget(issuer, target, ms, reason);
   if (typeof response === "boolean") {
-    // Send log embed
-    const logChannel = issuer.guild.channels.cache.get(logChannelId);
-    if (logChannel) {
-      const embed = new EmbedBuilder()
-        .setAuthor({ name: `Moderation - Timeout`, iconURL: issuer.user.displayAvatarURL() })
-        .setColor("#FF0000")
-        .setThumbnail(target.user.displayAvatarURL())
-        .addFields(
-          { name: "Member", value: `${target.user.tag} [${target.user.id}]`, inline: false },
-          { name: "Reason", value: reason, inline: false },
-          { name: "Duration", value: ems(ms, { long: true }), inline: true },
-          { name: "Expires", value: `<t:${Math.round((Date.now() + ms) / 1000)}:R>`, inline: true }
-        )
-        .setFooter({
-          text: `Timed out by ${issuer.user.tag} [${issuer.user.id}]`,
-          iconURL: issuer.user.displayAvatarURL(),
-        })
-        .setTimestamp();
-
-      await logChannel.send({ embeds: [embed] });
-    }
-
     return `${target.user.username} is timed out until ${endTimeString}!`;
   }
 
