@@ -12,6 +12,7 @@ module.exports = {
   userPermissions: ["KickMembers"],
   command: {
     enabled: true,
+    aliases: ["sban"],
     usage: "<ID|@member> [reason]",
     minArgsCount: 1,
   },

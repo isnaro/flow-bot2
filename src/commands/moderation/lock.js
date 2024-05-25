@@ -1,37 +1,54 @@
-const { Permissions, MessageEmbed } = require("discord.js");
+const { ApplicationCommandOptionType, PermissionsBitField } = require("discord.js");
 
 module.exports = {
   name: "lock",
-  category: "moderation",
-  description: "Locks a Channel",
-  async execute(bot, message, args) {
-    // Role ID that should have permission to use this command
-    const specialRoleID = "1226167494226608198";
+  description: "Locks the current channel, preventing everyone from sending messages",
+  category: "MODERATION",
+  botPermissions: ["ManageChannels"],
+  userPermissions: ["ManageChannels"],
+  command: {
+    enabled: true,
+    usage: "",
+    minArgsCount: 0,
+  },
+  slashCommand: {
+    enabled: true,
+    options: [
+      {
+        name: "channel",
+        description: "The channel to lock (default is current channel)",
+        type: ApplicationCommandOptionType.Channel,
+        required: false,
+      },
+    ],
+  },
 
-    // Check if the user has the required permissions
-    if (
-      !message.member.permissions.has([Permissions.FLAGS.MANAGE_CHANNELS]) &&
-      !message.member.roles.cache.has(specialRoleID)
-    ) {
-      return message.channel.send("You don't have enough Permissions");
-    }
+  async messageRun(message, args) {
+    const channel = message.mentions.channels.first() || message.channel;
+    const response = await lockChannel(channel, message.member);
+    await message.safeReply(response);
+  },
 
-    try {
-      // Lock the channel by denying SEND_MESSAGES permission for @everyone
-      await message.channel.permissionOverwrites.edit(message.guild.roles.everyone, {
-        SEND_MESSAGES: false,
-      });
-
-      const embed = new MessageEmbed()
-        .setTitle("Channel Updates")
-        .setDescription(`${message.channel} has been locked`)
-        .setColor("RANDOM");
-
-      await message.channel.send({ embeds: [embed] });
-      message.delete();
-    } catch (error) {
-      console.error("Error locking channel:", error);
-      await message.channel.send("Failed to lock the channel. Please try again later.");
-    }
+  async interactionRun(interaction) {
+    const channel = interaction.options.getChannel("channel") || interaction.channel;
+    const response = await lockChannel(channel, interaction.member);
+    await interaction.followUp(response);
   },
 };
+
+async function lockChannel(channel, issuer) {
+  if (!channel.permissionsFor(issuer).has(PermissionsBitField.Flags.ManageChannels)) {
+    return "You do not have permission to manage this channel.";
+  }
+
+  try {
+    await channel.permissionOverwrites.edit(channel.guild.roles.everyone, {
+      SendMessages: false,
+    });
+
+    return `🔒 ${channel.name} has been locked.`;
+  } catch (error) {
+    console.error(`Failed to lock ${channel.name}:`, error);
+    return "Failed to lock the channel. Please try again later.";
+  }
+}
