@@ -73,8 +73,8 @@ module.exports = {
 async function timeout(issuer, target, ms, reason) {
   if (isNaN(ms)) return "Please provide a valid duration. Example: 1d/1h/1m/1s";
 
-  const endTime = new Date(Date.now() + ms + 3600000); // Adjusting to GMT+1
-  const endTimeString = endTime.toLocaleString('en-GB', { timeZone: 'Europe/London' });
+  const endTime = new Date(Date.now() + ms);
+  const endTimeString = endTime.toLocaleString('en-GB', { timeZone: 'Africa/Algiers' });
 
   try {
     await target.send(
