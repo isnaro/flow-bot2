@@ -41,6 +41,10 @@ module.exports = {
     const target = match[0];
     if (!target) return message.safeReply(`No user found matching ${args[0]}`);
 
+    if (message.member.id === target.id) {
+      return message.safeReply("You cannot ban yourself.");
+    }
+
     const durationString = args[1];
     const duration = durationString ? ms(durationString) : null;
     const reason = duration ? args.slice(2).join(" ") : args.slice(1).join(" ");
@@ -50,6 +54,11 @@ module.exports = {
 
   async interactionRun(interaction) {
     const target = interaction.options.getUser("user");
+
+    if (interaction.member.id === target.id) {
+      return interaction.followUp("You cannot ban yourself.");
+    }
+
     const durationString = interaction.options.getString("duration");
     const duration = durationString ? ms(durationString) : null;
     const reason = interaction.options.getString("reason") || "No reason provided";
@@ -60,6 +69,10 @@ module.exports = {
 };
 
 async function ban(issuer, target, reason, duration) {
+  if (issuer.id === target.id) {
+    return "You cannot ban yourself.";
+  }
+
   const logChannelId = "1225439125776367697"; // Log channel ID
   const logChannel = issuer.guild.channels.cache.get(logChannelId);
 
