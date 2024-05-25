@@ -23,8 +23,8 @@ module.exports = {
     ],
   },
 
-  async messageRun(message, args) {
-    const channel = message.mentions.channels.first() || message.channel;
+  async messageRun(message) {
+    const channel = message.channel;
     const response = await unlockChannel(channel, message.member);
     await message.safeReply(response);
   },
@@ -45,7 +45,6 @@ async function unlockChannel(channel, issuer) {
     await channel.permissionOverwrites.edit(channel.guild.roles.everyone, {
       SendMessages: true,
     });
-
     return `🔓 ${channel.name} has been unlocked.`;
   } catch (error) {
     console.error(`Failed to unlock ${channel.name}:`, error);
