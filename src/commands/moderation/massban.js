@@ -1,4 +1,5 @@
 const { ApplicationCommandOptionType, EmbedBuilder } = require("discord.js");
+const ms = require("ms");
 
 module.exports = {
   name: "massban",
@@ -46,11 +47,12 @@ async function massban(issuer, targets, reason) {
   const banTimeString = banTime.toUTCString().replace("GMT", "GMT+1");
 
   try {
-    const banMessages = targets.map(target => `### 🔴🔴 You were banned from **${issuer.guild.name}** for __***${reason}***__ ###`);
+    for (const target of targets) {
+      const banMessage = `### 🔴🔴 You were banned from **${issuer.guild.name}** for __***${reason}***__ ###`;
+      const dmMessage = `${banMessage}\n\n### In case you believe the ban was unfair, you can appeal your ban here: [FLOW Appeal](https://discord.gg/YuJbSBxbrX) ###`;
 
-    for (const [index, target] of targets.entries()) {
       try {
-        await target.send(banMessages[index]);
+        await target.send(dmMessage);
       } catch (error) {
         console.error(`Failed to send DM to ${target.username}:`, error);
       }
