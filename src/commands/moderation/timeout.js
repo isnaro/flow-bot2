@@ -9,8 +9,8 @@ module.exports = {
   name: "timeout",
   description: "Timeouts the specified member",
   category: "MODERATION",
-  botPermissions: ["ModerateMembers"],
-  userPermissions: ["ModerateMembers"],
+  botPermissions: ["TimeoutMembers"],
+  userPermissions: ["TimeoutMembers"],
   command: {
     enabled: true,
     aliases: ["tmt"],
