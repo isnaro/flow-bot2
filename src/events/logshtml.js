@@ -96,3 +96,5 @@ function saveHtmlToFile(htmlContent, channelName) {
   fs.writeFileSync(filePath, htmlContent, 'utf8');
   return filePath;
 }
+
+module.exports = client;
