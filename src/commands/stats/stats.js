@@ -65,7 +65,7 @@ async function stats(member, settings) {
       {
         name: "⌚ Member since",
         value: member.joinedAt.toLocaleString(),
-        inline: false,
+        inline: true,
       },
       {
         name: "💬 Messages sent",
