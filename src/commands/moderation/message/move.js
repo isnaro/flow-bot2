@@ -19,7 +19,7 @@ module.exports = {
   async messageRun(message, args) {
     // Check if the user has the "Administrator" permission
     if (!message.member.permissions.has("Administrator")) {
-      return message.safeReply("You need to have Administrator privileges to use this command.");
+      return message.safeReply("z3ma nta m9wd ?");
     }
 
     const target = await message.guild.resolveMember(args[0], true);
