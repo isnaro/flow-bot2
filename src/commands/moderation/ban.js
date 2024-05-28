@@ -14,6 +14,7 @@ module.exports = {
   },
   slashCommand: {
     enabled: true,
+    aliases: ["bn8"],
     options: [
       {
         name: "user",
