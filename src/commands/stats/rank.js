@@ -17,7 +17,7 @@ module.exports = {
     usage: "[@member|id]",
   },
   slashCommand: {
-    enabled: true,
+    enabled: false,
     options: [
       {
         name: "user",
