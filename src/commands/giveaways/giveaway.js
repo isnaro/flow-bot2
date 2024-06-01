@@ -183,5 +183,3 @@ function parseDuration(duration) {
   }
 }
 
-// Login to Discord with your client's token
-client.login('YOUR_BOT_TOKEN'); // Replace with your bot's token
