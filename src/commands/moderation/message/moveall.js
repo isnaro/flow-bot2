@@ -14,7 +14,7 @@ module.exports = {
   },
 
   async messageRun(message, args) {
-    const allowedRoles = ["1200477300093878385", "1200477902387544185", "1226166523136180276"]; // Added role ID to allowed roles
+    const allowedRoles = ["1200477300093878385", "1200477902387544185", "1226166523136180276"]; // Role IDs allowed to use the command
     const memberRoles = message.member.roles.cache.map(role => role.id);
 
     if (!allowedRoles.some(role => memberRoles.includes(role))) {
@@ -79,6 +79,8 @@ module.exports = {
     if (membersToMove.length === 0) {
       return message.safeReply("There are no members to move in the specified source channel.");
     }
+
+    // Remove bot role hierarchy check
 
     const response = await moveAll(message, membersToMove, reason, destinationChannel);
     await message.safeReply(response);
