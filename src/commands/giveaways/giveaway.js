@@ -1,138 +1,86 @@
-const { ApplicationCommandOptionType, EmbedBuilder } = require("discord.js");
+const { ApplicationCommandOptionType, EmbedBuilder, Client, Intents } = require("discord.js");
 const { setTimeout } = require("timers/promises");
 
-/**
- * @type {import("@structures/Command")}
- */
-module.exports = {
-  name: "giveaway",
-  description: "Starts a new giveaway",
-  category: "UTILITY",
-  botPermissions: ["SendMessages", "EmbedLinks", "AddReactions"],
-  command: {
-    enabled: true,
-    usage: "<channel> <name> <duration> <winners> [description] [image] [roles...]",
-    minArgsCount: 4,
-  },
-  slashCommand: {
-    enabled: true,
-    options: [
-      {
-        name: "channel",
-        description: "The channel to post the giveaway in",
-        type: ApplicationCommandOptionType.Channel,
-        required: true,
-      },
-      {
-        name: "name",
-        description: "The name of the giveaway",
-        type: ApplicationCommandOptionType.String,
-        required: true,
-      },
-      {
-        name: "duration",
-        description: "Duration of the giveaway (e.g., 1h, 30m, 1d)",
-        type: ApplicationCommandOptionType.String,
-        required: true,
-      },
-      {
-        name: "winners",
-        description: "Number of winners",
-        type: ApplicationCommandOptionType.Integer,
-        required: true,
-      },
-      {
-        name: "description",
-        description: "Description of the giveaway",
-        type: ApplicationCommandOptionType.String,
-        required: false,
-      },
-      {
-        name: "image",
-        description: "Image URL for the giveaway",
-        type: ApplicationCommandOptionType.String,
-        required: false,
-      },
-      {
-        name: "roles",
-        description: "Roles allowed to participate",
-        type: ApplicationCommandOptionType.Role,
-        required: false,
-        multi: true,
-      },
-    ],
-  },
+// Create a new client instance
+const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS, Intents.FLAGS.GUILD_MEMBERS] });
 
-  async messageRun(message, args) {
-    const requiredRole = "1232680926459203644";
-    if (!message.member.roles.cache.has(requiredRole)) {
-      return message.safeReply("You do not have the required role to use this command.");
-    }
+// Register your slash command when the client is ready
+client.once('ready', () => {
+  console.log(`Logged in as ${client.user.tag}!`);
 
-    try {
-      const [channelId, name, duration, winners, ...rest] = args;
-      const channel = message.guild.channels.cache.get(channelId.replace(/[<#>]/g, ""));
-      if (!channel) return message.safeReply("Invalid channel.");
+  const guild = client.guilds.cache.get('YOUR_GUILD_ID'); // Replace with your guild ID
+  if (guild) {
+    guild.commands.create({
+      name: 'giveaway',
+      description: 'Starts a new giveaway',
+      options: [
+        {
+          name: 'channel',
+          description: 'The channel to post the giveaway in',
+          type: ApplicationCommandOptionType.CHANNEL,
+          required: true,
+        },
+        {
+          name: 'name',
+          description: 'The name of the giveaway',
+          type: ApplicationCommandOptionType.STRING,
+          required: true,
+        },
+        {
+          name: 'duration',
+          description: 'Duration of the giveaway (e.g., 1h, 30m, 1d)',
+          type: ApplicationCommandOptionType.STRING,
+          required: true,
+        },
+        {
+          name: 'winners',
+          description: 'Number of winners',
+          type: ApplicationCommandOptionType.INTEGER,
+          required: true,
+        },
+        {
+          name: 'description',
+          description: 'Description of the giveaway',
+          type: ApplicationCommandOptionType.STRING,
+          required: false,
+        },
+        {
+          name: 'image',
+          description: 'Image URL for the giveaway',
+          type: ApplicationCommandOptionType.STRING,
+          required: false,
+        },
+        {
+          name: 'roles',
+          description: 'Roles allowed to participate',
+          type: ApplicationCommandOptionType.ROLE,
+          required: false,
+        },
+      ],
+    });
+  }
+});
 
-      let description = null, image = null;
-      const roles = [];
+// Handle slash command interactions
+client.on('interactionCreate', async interaction => {
+  if (!interaction.isCommand()) return;
 
-      let restString = rest.join(" ");
+  const { commandName } = interaction;
 
-      // Extract description if present
-      const descriptionMatch = restString.match(/"([^"]+)"/);
-      if (descriptionMatch) {
-        description = descriptionMatch[1];
-        restString = restString.replace(descriptionMatch[0], "").trim();
-      }
-
-      // Extract image URL if present
-      const imageMatch = restString.match(/(https?:\/\/[^\s]+)/);
-      if (imageMatch) {
-        image = imageMatch[0];
-        restString = restString.replace(imageMatch[0], "").trim();
-      }
-
-      // Extract role mentions
-      const roleMatches = restString.match(/<@&\d+>/g) || [];
-      roleMatches.forEach(roleStr => {
-        const roleId = roleStr.replace(/[<@&>]/g, "");
-        const role = message.guild.roles.cache.get(roleId);
-        if (role) roles.push(role);
-      });
-
-      console.log("Extracted values:", {
-        channel: channel.name,
-        name,
-        duration,
-        winners,
-        description,
-        image,
-        roles: roles.map(role => role.name),
-      });
-
-      const response = await startGiveaway(channel, name, duration, winners, description, image, roles);
-      await message.safeReply(response);
-    } catch (err) {
-      console.error("Error in messageRun:", err);
-      message.safeReply("An error occurred while running this command.");
-    }
-  },
-
-  async interactionRun(interaction) {
-    const requiredRole = "1232680926459203644";
+  if (commandName === 'giveaway') {
+    const requiredRole = '1232680926459203644'; // Replace with your required role ID
     if (!interaction.member.roles.cache.has(requiredRole)) {
-      return interaction.followUp("You do not have the required role to use this command.");
+      return interaction.reply("You do not have the required role to use this command.");
     }
 
     try {
-      const channel = interaction.options.getChannel("channel");
-      const name = interaction.options.getString("name");
-      const duration = interaction.options.getString("duration");
-      const winners = interaction.options.getInteger("winners");
-      const description = interaction.options.getString("description");
-      const image = interaction.options.getString("image");
-      const roles = interaction.options.getRole("roles") ? interaction.options.getRole("roles").map(r => interaction.guild.roles.cache.get(r.id)) : [];
+      const channel = interaction.options.getChannel('channel');
+      const name = interaction.options.getString('name');
+      const duration = interaction.options.getString('duration');
+      const winners = interaction.options.getInteger('winners');
+      const description = interaction.options.getString('description');
+      const image = interaction.options.getString('image');
+      const roles = interaction.options.getRole('roles') ? [interaction.options.getRole('roles')] : [];
 
       console.log("Extracted values:", {
         channel: channel.name,
@@ -145,13 +93,13 @@ module.exports = {
       });
 
       const response = await startGiveaway(channel, name, duration, winners, description, image, roles);
-      await interaction.followUp(response);
+      await interaction.reply(response);
     } catch (err) {
-      console.error("Error in interactionRun:", err);
-      interaction.followUp("An error occurred while running this command.");
+      console.error("Error in interactionCreate:", err);
+      interaction.reply("An error occurred while running this command.");
     }
-  },
-};
+  }
+});
 
 async function startGiveaway(channel, name, duration, winners, description, image, roles) {
   try {
@@ -234,3 +182,6 @@ function parseDuration(duration) {
       return null;
   }
 }
+
+// Login to Discord with your client's token
+client.login('YOUR_BOT_TOKEN'); // Replace with your bot's token
