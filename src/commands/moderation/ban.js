@@ -105,17 +105,17 @@ async function ban(issuer, target, reason, duration) {
         // Send embed to log channel
         if (logChannel) {
           const embed = new EmbedBuilder()
-            .setTitle("User Banned")
-            .setColor("#FF0000")
-            .setThumbnail(target.displayAvatarURL())
+            .setAuthor({ name: "Moderation - Ban" })
+            .setColor("#2f3136")
+            .setThumbnail(target.displayAvatarURL({ dynamic: true }))
             .addFields(
-              { name: "User", value: `${target.tag} [${target.id}]`, inline: true },
-              { name: "Moderator", value: `${issuer.user.tag} [${issuer.id}]`, inline: true },
-              { name: "Reason", value: reason, inline: true },
-              { name: "Duration", value: ms(duration, { long: true }), inline: true },
-              { name: "Ban Time", value: banTimeString, inline: true },
-              { name: "Unban Date", value: unbanDateString, inline: true },
+              { name: "Member", value: `${target.tag} [${target.id}]`, inline: false },
+              { name: "Reason", value: reason, inline: false },
+              { name: "Duration", value: duration ? ms(duration, { long: true }) : "Permanent", inline: true },
+              { name: "Expires", value: duration ? `<t:${Math.floor((Date.now() + duration) / 1000)}:R>` : "Never", inline: true },
+              { name: "Unban Date", value: unbanDateString, inline: true }
             )
+            .setFooter({ text: `Banned by ${issuer.user.tag} [${issuer.id}]`, iconURL: issuer.user.displayAvatarURL({ dynamic: true }) })
             .setTimestamp();
           await logChannel.send({ embeds: [embed] });
         }
@@ -127,15 +127,15 @@ async function ban(issuer, target, reason, duration) {
             // Send unban embed to log channel
             if (logChannel) {
               const unbanEmbed = new EmbedBuilder()
-                .setTitle("User Unbanned")
-                .setColor("#00FF00")
-                .setThumbnail(target.displayAvatarURL())
+                .setAuthor({ name: "Moderation - Unban" })
+                .setColor("#2f3136")
+                .setThumbnail(target.displayAvatarURL({ dynamic: true }))
                 .addFields(
-                  { name: "User", value: `${target.tag} [${target.id}]`, inline: true },
-                  { name: "Moderator", value: "System", inline: true },
-                  { name: "Reason", value: "Ban duration expired", inline: true },
-                  { name: "Unban Time", value: new Date(Date.now() + gmtPlusOneOffset).toUTCString().replace("GMT", "GMT+1"), inline: true }
+                  { name: "Member", value: `${target.tag} [${target.id}]`, inline: false },
+                  { name: "Reason", value: "Ban duration expired", inline: false },
+                  { name: "Unban Time", value: new Date(Date.now() + gmtPlusOneOffset).toUTCString().replace("GMT", "GMT+1"), inline: false }
                 )
+                .setFooter({ text: `Unbanned by System`, iconURL: issuer.user.displayAvatarURL({ dynamic: true }) })
                 .setTimestamp();
               await logChannel.send({ embeds: [unbanEmbed] });
             }
@@ -160,15 +160,16 @@ async function ban(issuer, target, reason, duration) {
         // Send embed to log channel
         if (logChannel) {
           const embed = new EmbedBuilder()
-            .setTitle("User Banned")
-            .setColor("#FF0000")
-            .setThumbnail(target.displayAvatarURL())
+            .setAuthor({ name: "Moderation - Ban" })
+            .setColor("#2f3136")
+            .setThumbnail(target.displayAvatarURL({ dynamic: true }))
             .addFields(
-              { name: "User", value: `${target.tag} [${target.id}]`, inline: true },
-              { name: "Moderator", value: `${issuer.user.tag} [${issuer.id}]`, inline: true },
-              { name: "Reason", value: reason, inline: true },
-              { name: "Ban Time", value: banTimeString, inline: true },
+              { name: "Member", value: `${target.tag} [${target.id}]`, inline: false },
+              { name: "Reason", value: reason, inline: false },
+              { name: "Duration", value: "Permanent", inline: true },
+              { name: "Expires", value: "Never", inline: true }
             )
+            .setFooter({ text: `Banned by ${issuer.user.tag} [${issuer.id}]`, iconURL: issuer.user.displayAvatarURL({ dynamic: true }) })
             .setTimestamp();
           await logChannel.send({ embeds: [embed] });
         }
