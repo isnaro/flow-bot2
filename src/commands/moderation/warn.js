@@ -8,7 +8,7 @@ module.exports = {
   name: "warn",
   description: "warns the specified member",
   category: "MODERATION",
-  userPermissions: ["KickMembers"],
+  userPermissions: ["ViewAuditLog"], // Changed permission requirement
   command: {
     enabled: true,
     usage: "<ID|@member> [reason]",
@@ -57,7 +57,7 @@ async function warn(issuer, target, reason) {
       try {
         await target.send(
           `## ⚠️⚠️ You have been warned in FLOW for: **${reason}** ##\n\n`
-          + `### Please follow <#1200477076113850468> to avoid further actions. If you believe the warn was unfair, create a ticket through <#1200479692927549640> or from  [FLOW Appeal](https://discord.gg/kJFuMk6ZFS)`
+          + `### Please follow <#1200477076113850468> to avoid further actions. If you believe the warn was unfair, create a ticket through <#1200479692927549640> or from [FLOW Appeal](https://discord.gg/kJFuMk6ZFS)`
         );
       } catch (err) {
         console.error(`Failed to send DM to ${target.user.username}:`, err);
