@@ -30,7 +30,7 @@ module.exports = {
     if (channelArg.match(/^\d+$/)) {
       const targetChannel = message.guild.channels.cache.get(channelArg);
 
-      if (!targetChannel || !(targetChannel.type === ChannelType.GUILD_VOICE || targetChannel.type === ChannelType.GUILD_STAGE_VOICE)) {
+      if (!targetChannel || !(targetChannel.type === ChannelType.GuildVoice || targetChannel.type === ChannelType.GuildStageVoice)) {
         return message.safeReply("The specified channel is not a valid voice channel.");
       }
 
@@ -76,15 +76,18 @@ async function vunmute(message, target, reason) {
     // Create and send the embed
     const embed = new EmbedBuilder()
       .setAuthor({ name: `Moderation - Voice Unmute`, iconURL: message.author.displayAvatarURL() })
-      .setColor("#00FF00")
-      .setThumbnail(target.user.displayAvatarURL())
-      .setDescription(`${target.user.tag} has been unmuted in the voice channel.`)
+      .setColor("#2f3136")
+      .setThumbnail(target.user.displayAvatarURL({ dynamic: true }))
       .addFields(
-        { name: "Moderator", value: `${message.author.tag} [${message.author.id}]`, inline: true },
-        { name: "Reason", value: reason, inline: true },
-        { name: "Time", value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: false },
-        { name: "User ID", value: `${target.id}`, inline: false }
+        { name: "Member", value: `${target.user.tag} [${target.id}]`, inline: false },
+        { name: "Reason", value: reason, inline: false },
+        { name: "Time", value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true },
+        { name: "Moderator", value: `${message.author.tag} [${message.author.id}]`, inline: true }
       )
+      .setFooter({
+        text: `ID: ${target.id}`,
+        iconURL: target.user.displayAvatarURL({ dynamic: true }),
+      })
       .setTimestamp();
 
     if (logChannel) {

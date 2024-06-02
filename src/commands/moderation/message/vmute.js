@@ -110,87 +110,84 @@ async function vmute(message, target, reason, duration) {
 
       // Create and send the embed
       const embed = new EmbedBuilder()
-      .setAuthor({
-        name: `${message.guild.name} Modlogs`,
-        iconURL: message.guild.iconURL({ dynamic: true }),
-      })
-      .setColor("#2f3136")
-      .setThumbnail(target.user.displayAvatarURL({ dynamic: true }))
-      .setDescription(
-        `**Member:** ${target.user.tag} (${target.id})\n` +
-        `**Action:** Voice Mute\n` +
-        `**Reason:** ${reason}\n` +
-        `**Duration:** ${duration ? ms(duration, { long: true }) : "Indefinite"}\n` +
-        `**Moderator:** ${message.author.tag} (${message.author.id})`
-      )
-      .setFooter({
-        text: `ID: ${target.id}`,
-        iconURL: target.user.displayAvatarURL({ dynamic: true }),
-      })
-      .setTimestamp();
+        .setAuthor({
+          name: "Moderation - Mute",
+        })
+        .setColor("#2f3136")
+        .setThumbnail(target.user.displayAvatarURL({ dynamic: true }))
+        .addFields(
+          { name: "Member", value: `${target.user.tag} [${target.id}]`, inline: false },
+          { name: "Reason", value: reason, inline: false },
+          { name: "Duration", value: duration ? ms(duration, { long: true }) : "Indefinite", inline: true },
+          { name: "Expires", value: duration ? `<t:${Math.floor(Date.now() / 1000) + duration / 1000}:R>` : "Indefinite", inline: true },
+        )
+        .setFooter({
+          text: `Muted by ${message.author.tag} [${message.author.id}]`,
+        })
+        .setTimestamp();
 
-    if (logChannel) {
-      logChannel.send({ embeds: [embed] });
+      if (logChannel) {
+        logChannel.send({ embeds: [embed] });
+      }
+
+      return `Muted ${target.user.tag} for reason: ${reason}.`;
+    } else {
+      return `${target.user.tag} is not in a voice channel.`;
     }
-
-    return `Muted ${target.user.tag} for reason: ${reason}.`;
-  } else {
-    return `${target.user.tag} is not in a voice channel.`;
+  } catch (error) {
+    console.error("Error muting member:", error);
+    return "Failed to voice mute the member. Please try again later.";
   }
-} catch (error) {
-  console.error("Error muting member:", error);
-  return "Failed to voice mute the member. Please try again later.";
-}
 }
 
 async function sendMuteDM(member, reason, duration) {
-try {
-  const muteDuration = duration ? ms(duration, { long: true }) : "Indefinite";
-  const unmuteTime = duration ? `The mute will be removed in ${muteDuration}.` : "The mute is indefinite.";
-  const appealChannelId = "1200479692927549640"; // Channel ID for mute appeals
+  try {
+    const muteDuration = duration ? ms(duration, { long: true }) : "Indefinite";
+    const unmuteTime = duration ? `The mute will be removed in ${muteDuration}.` : "The mute is indefinite.";
+    const appealChannelId = "1200479692927549640"; // Channel ID for mute appeals
 
-  const dmEmbed = new EmbedBuilder()
-    .setColor("#2f3136")
-    .setTitle("Voice Mute Notification")
-    .setDescription(
-      `You have been voice muted in **${member.guild.name}**.\n\n` +
-      `**Reason:** ${reason}\n` +
-      `**Duration:** ${muteDuration}\n` +
-      `${unmuteTime}\n\n` +
-      `If you believe the mute was unfair, you can appeal it by opening a ticket in <#${appealChannelId}>.`
-    )
-    .setTimestamp();
+    const dmEmbed = new EmbedBuilder()
+      .setColor("#2f3136")
+      .setTitle("Voice Mute Notification")
+      .setDescription(
+        `You have been voice muted in **${member.guild.name}**.\n\n` +
+        `**Reason:** ${reason}\n` +
+        `**Duration:** ${muteDuration}\n` +
+        `${unmuteTime}\n\n` +
+        `If you believe the mute was unfair, you can appeal it by opening a ticket in <#${appealChannelId}>.`
+      )
+      .setTimestamp();
 
-  await member.send({ embeds: [dmEmbed] });
-} catch (error) {
-  console.error("Error sending mute DM:", error);
-}
+    await member.send({ embeds: [dmEmbed] });
+  } catch (error) {
+    console.error("Error sending mute DM:", error);
+  }
 }
 
 async function logUnmute(member, moderator, reason) {
-const logChannelId = "1225439125776367697"; // Log channel ID
-const logChannel = member.guild.channels.cache.get(logChannelId);
+  const logChannelId = "1225439125776367697"; // Log channel ID
+  const logChannel = member.guild.channels.cache.get(logChannelId);
 
-if (!logChannel) return;
+  if (!logChannel) return;
 
-const embed = new EmbedBuilder()
-  .setAuthor({
-    name: `${member.guild.name} Modlogs`,
-    iconURL: member.guild.iconURL({ dynamic: true }),
-  })
-  .setColor("#2f3136")
-  .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
-  .setDescription(
-    `**Member:** ${member.user.tag} (${member.id})\n` +
-    `**Action:** Voice Unmute\n` +
-    `**Reason:** ${reason}\n` +
-    `**Moderator:** ${moderator.tag} (${moderator.id})`
-  )
-  .setFooter({
-    text: `ID: ${member.id}`,
-    iconURL: member.user.displayAvatarURL({ dynamic: true }),
-  })
-  .setTimestamp();
+  const embed = new EmbedBuilder()
+    .setAuthor({
+      name: `${member.guild.name} Modlogs`,
+      iconURL: member.guild.iconURL({ dynamic: true }),
+    })
+    .setColor("#2f3136")
+    .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+    .setDescription(
+      `**Member:** ${member.user.tag} (${member.id})\n` +
+      `**Action:** Voice Unmute\n` +
+      `**Reason:** ${reason}\n` +
+      `**Moderator:** ${moderator.tag} (${moderator.id})`
+    )
+    .setFooter({
+      text: `ID: ${member.id}`,
+      iconURL: member.user.displayAvatarURL({ dynamic: true }),
+    })
+    .setTimestamp();
 
-logChannel.send({ embeds: [embed] });
+  logChannel.send({ embeds: [embed] });
 }
