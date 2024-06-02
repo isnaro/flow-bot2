@@ -75,19 +75,16 @@ async function vunmute(message, target, reason) {
 
     // Create and send the embed
     const embed = new EmbedBuilder()
-      .setAuthor({ name: `Moderation - Voice Unmute`, iconURL: message.author.displayAvatarURL() })
+      .setAuthor({ name: "Moderation - Voice Unmute" })
       .setColor("#2f3136")
       .setThumbnail(target.user.displayAvatarURL({ dynamic: true }))
       .addFields(
         { name: "Member", value: `${target.user.tag} [${target.id}]`, inline: false },
         { name: "Reason", value: reason, inline: false },
-        { name: "Time", value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true },
-        { name: "Moderator", value: `${message.author.tag} [${message.author.id}]`, inline: true }
+        { name: "Unmuted by", value: `${message.author.tag} [${message.author.id}]`, inline: true },
+        { name: "Time", value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true }
       )
-      .setFooter({
-        text: `ID: ${target.id}`,
-        iconURL: target.user.displayAvatarURL({ dynamic: true }),
-      })
+      .setFooter({ text: `ID: ${target.id}`, iconURL: target.user.displayAvatarURL({ dynamic: true }) })
       .setTimestamp();
 
     if (logChannel) {
