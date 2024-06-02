@@ -1,4 +1,4 @@
-const { ChannelType, EmbedBuilder } = require("discord.js");
+const { ChannelType, EmbedBuilder, PermissionsBitField } = require("discord.js");
 const ms = require("ms");
 
 // Map to store muted members and their unmute timeouts
@@ -20,10 +20,11 @@ module.exports = {
   },
 
   async messageRun(message, args) {
-    const allowedRolesForChannelMute = ["1200477300093878385", "1200477902387544185"]; // Role IDs allowed to use channel-based mute
-    const allowedRolesForUserMute = ["1200477300093878385", "1200477902387544185", "1226167494226608198"]; // Role IDs allowed to use user-based mute
+    // Check if the user has the "Mute Members" permission
+    if (!message.member.permissions.has(PermissionsBitField.Flags.MuteMembers)) {
+      return message.safeReply("You do not have permission to use this command.");
+    }
 
-    const memberRoles = message.member.roles.cache.map(role => role.id);
     const userOrChannelArg = args[0];
 
     // Identify if the second argument is a duration
@@ -33,10 +34,6 @@ module.exports = {
 
     if (userOrChannelArg.match(/^\d+$/) && message.guild.channels.cache.has(userOrChannelArg)) {
       // If the argument is a channel ID
-      if (!allowedRolesForChannelMute.some(role => memberRoles.includes(role))) {
-        return message.safeReply("You do not have permission to use channel-based mute.");
-      }
-
       const targetChannel = message.guild.channels.cache.get(userOrChannelArg);
 
       if (!targetChannel || !(targetChannel.type === ChannelType.GuildVoice || targetChannel.type === ChannelType.GuildStageVoice)) {
@@ -53,10 +50,6 @@ module.exports = {
       return message.safeReply(response);
     } else {
       // Otherwise, treat it as a member mention or ID
-      if (!allowedRolesForUserMute.some(role => memberRoles.includes(role))) {
-        return message.safeReply("You do not have permission to use user-based mute.");
-      }
-
       const target = await message.guild.members.fetch(userOrChannelArg).catch(() => null);
       if (!target) return message.safeReply(`No user found matching ${userOrChannelArg}`);
 
@@ -111,7 +104,7 @@ async function vmute(message, target, reason, duration) {
       // Create and send the embed
       const embed = new EmbedBuilder()
         .setAuthor({
-          name: "Moderation - Mute",
+          name: "Moderation - Voice Mute",
         })
         .setColor("#2f3136")
         .setThumbnail(target.user.displayAvatarURL({ dynamic: true }))
