@@ -91,7 +91,7 @@ async function vunmute(message, target, reason) {
       await logChannel.send({ embeds: [embed] });
     }
 
-    return `${target.user.tag} has been unmuted.`;
+    return `${target.user.tag} has been voice unmuted.`;
   } catch (error) {
     console.error("Error unmuting member:", error);
     return "Failed to unmute the member. Please try again later.";
