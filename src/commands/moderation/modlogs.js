@@ -88,8 +88,9 @@ async function sendModlogEmbed(context, user, logs, pageIndex) {
       { name: "Action", value: log.type, inline: true },
       { name: "Reason", value: log.reason, inline: true },
       { name: "Date", value: new Date(log.date).toLocaleString(), inline: true },
-      { name: "Responsible Moderator", value: `${log.issuer} (${log.issuerId})`, inline: true }
+      { name: "Responsible Moderator", value: `${log.issuer} (${log.issuerId})`, inline: false }
     );
+    embed.addFields({ name: '\u200B', value: '\u200B' });
   });
 
   const row = new ActionRowBuilder()
