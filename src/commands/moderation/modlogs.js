@@ -18,7 +18,6 @@ module.exports = {
   name: "modlogs",
   description: "Displays moderation logs for a user",
   category: "MODERATION",
-  userPermissions: ["MuteMembers"],
   command: {
     enabled: true,
     usage: "<ID|@member>",
@@ -37,19 +36,34 @@ module.exports = {
   },
 
   async messageRun(message, args) {
+    if (!hasRequiredRole(message.member)) {
+      return;
+    }
+
     const target = await message.guild.resolveMember(args[0], true);
     if (!target) return message.safeReply(`No user found matching ${args[0]}`);
+
     const logs = getLogs()[target.user.id] || [];
     await sendModlogEmbed(message, target.user, logs, 0);
   },
 
   async interactionRun(interaction) {
+    if (!hasRequiredRole(interaction.member)) {
+      return;
+    }
+
     const user = interaction.options.getUser("user");
     const target = await interaction.guild.members.fetch(user.id);
+
     const logs = getLogs()[target.user.id] || [];
     await sendModlogEmbed(interaction, target.user, logs, 0);
   },
 };
+
+function hasRequiredRole(member) {
+  const requiredRoles = ["1226166868952350721", "1226167494226608198"];
+  return member.roles.cache.some(role => requiredRoles.includes(role.id));
+}
 
 async function sendModlogEmbed(context, user, logs, pageIndex) {
   if (logs.length === 0) {
@@ -74,7 +88,7 @@ async function sendModlogEmbed(context, user, logs, pageIndex) {
       { name: "Action", value: log.type, inline: true },
       { name: "Reason", value: log.reason, inline: true },
       { name: "Date", value: new Date(log.date).toLocaleString(), inline: true },
-      { name: "Issuer", value: log.issuer, inline: true }
+      { name: "Responsible Moderator", value: `${log.issuer} (${log.issuerId})`, inline: true }
     );
   });
 
