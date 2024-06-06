@@ -15,10 +15,10 @@ function getLogs() {
  * @type {import("@structures/Command")}
  */
 module.exports = {
-  name: "modlog",
+  name: "modlogs",
   description: "Displays moderation logs for a user",
   category: "MODERATION",
-  userPermissions: ["KickMembers"],
+  userPermissions: ["MuteMembers"],
   command: {
     enabled: true,
     usage: "<ID|@member>",
