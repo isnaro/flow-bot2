@@ -1,49 +1,27 @@
-const { ApplicationCommandOptionType, MessageEmbed } = require("discord.js");
-const ms = require("ms");
+const { ApplicationCommandOptionType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = require("discord.js");
+const fs = require('fs');
+const path = require('path');
 
-// Initialize an empty map to store moderation logs
-const moderationLogs = new Map();
+const logsFilePath = path.join(__dirname, 'modlogs.json');
 
-/**
- * Function to log a moderation action
- * @param {string} userId - The ID of the user being moderated
- * @param {string} modId - The ID of the moderator performing the action
- * @param {string} modName - The username of the moderator performing the action
- * @param {string} actionType - The type of moderation action (e.g., "MUTE", "KICK")
- * @param {string} reason - The reason for the moderation action
- */
-function logModAction(userId, modId, modName, actionType, reason) {
-  const timestamp = new Date().toISOString();
-  const logEntry = { userId, modId, modName, actionType, reason, timestamp };
-  
-  // Append the log entry to the user's log array
-  if (moderationLogs.has(userId)) {
-    moderationLogs.get(userId).push(logEntry);
-  } else {
-    moderationLogs.set(userId, [logEntry]);
+function getLogs() {
+  if (!fs.existsSync(logsFilePath)) {
+    fs.writeFileSync(logsFilePath, JSON.stringify({}));
   }
+  return JSON.parse(fs.readFileSync(logsFilePath));
 }
 
 /**
- * Function to get moderation actions for a user
- * @param {string} userId - The ID of the user to retrieve moderation logs for
- * @returns {Array} - An array of moderation log entries for the user
+ * @type {import("@structures/Command")}
  */
-function getModActions(userId) {
-  console.log("Retrieving moderation actions for user:", userId);
-  return moderationLogs.get(userId) || [];
-}
-
 module.exports = {
-  name: "modlogs",
-  description: "View moderation logs for a user",
+  name: "modlog",
+  description: "Displays moderation logs for a user",
   category: "MODERATION",
-  userPermissions: [],
-  botPermissions: [],
+  userPermissions: ["KickMembers"],
   command: {
     enabled: true,
-    aliases: ["ml"],
-    usage: "<@user/user-id>",
+    usage: "<ID|@member>",
     minArgsCount: 1,
   },
   slashCommand: {
@@ -51,55 +29,108 @@ module.exports = {
     options: [
       {
         name: "user",
-        description: "The user to view moderation logs for",
-        type: ApplicationCommandOptionType.USER,
+        description: "The target member",
+        type: ApplicationCommandOptionType.User,
         required: true,
       },
     ],
   },
 
   async messageRun(message, args) {
-    const userId = message.mentions.users.first()?.id || args[0];
-    const modActions = getModActions(userId);
-    console.log("Retrieved moderation actions:", modActions);
-    if (!modActions.length) return message.safeReply("No moderation actions found for this user.");
-
-    const embed = createModLogEmbed(message.guild, userId, modActions);
-    message.safeSend({ embeds: [embed] });
+    const target = await message.guild.resolveMember(args[0], true);
+    if (!target) return message.safeReply(`No user found matching ${args[0]}`);
+    const logs = getLogs()[target.user.id] || [];
+    await sendModlogEmbed(message, target.user, logs, 0);
   },
 
   async interactionRun(interaction) {
-    const userId = interaction.options.getUser("user").id;
-    const modActions = getModActions(userId);
-    console.log("Retrieved moderation actions:", modActions);
-    if (!modActions.length) return interaction.reply("No moderation actions found for this user.");
-
-    const embed = createModLogEmbed(interaction.guild, userId, modActions);
-    interaction.reply({ embeds: [embed] });
+    const user = interaction.options.getUser("user");
+    const target = await interaction.guild.members.fetch(user.id);
+    const logs = getLogs()[target.user.id] || [];
+    await sendModlogEmbed(interaction, target.user, logs, 0);
   },
 };
 
-/**
- * Function to create an embed for moderation logs
- * @param {import('discord.js').Guild} guild - The guild object
- * @param {string} userId - The ID of the user
- * @param {Array} modActions - An array of moderation log entries for the user
- * @returns {import('discord.js').MessageEmbed} - The embed object
- */
-function createModLogEmbed(guild, userId, modActions) {
-  const user = guild.members.cache.get(userId)?.user || { tag: "Unknown User" };
-  const embed = new MessageEmbed()
-    .setTitle("Moderation Logs")
-    .setDescription(`Moderation actions for ${user.tag} (${userId})`);
+async function sendModlogEmbed(context, user, logs, pageIndex) {
+  if (logs.length === 0) {
+    return context.reply(`No logs found for ${user.tag}`);
+  }
 
-  modActions.forEach((action, index) => {
-    embed.addField(`Action ${index + 1}`, `
-      **Type:** ${action.actionType}
-      **Moderator:** <@${action.modId}> (${action.modName})
-      **Reason:** ${action.reason}
-      **Timestamp:** ${new Date(action.timestamp).toLocaleString()}
-    `);
+  const itemsPerPage = 5;
+  const totalPages = Math.ceil(logs.length / itemsPerPage);
+
+  const embed = new EmbedBuilder()
+    .setAuthor({ name: `Moderation Logs for ${user.tag}`, iconURL: user.displayAvatarURL() })
+    .setColor("#FF0000")
+    .setThumbnail(user.displayAvatarURL())
+    .setFooter({ text: `Page ${pageIndex + 1} of ${totalPages}` });
+
+  const start = pageIndex * itemsPerPage;
+  const end = start + itemsPerPage;
+  const pageItems = logs.slice(start, end);
+
+  pageItems.forEach(log => {
+    embed.addFields(
+      { name: "Action", value: log.type, inline: true },
+      { name: "Reason", value: log.reason, inline: true },
+      { name: "Date", value: new Date(log.date).toLocaleString(), inline: true },
+      { name: "Issuer", value: log.issuer, inline: true }
+    );
   });
 
-  return embed;
+  const row = new ActionRowBuilder()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('prev')
+        .setLabel('Previous')
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(pageIndex === 0),
+      new ButtonBuilder()
+        .setCustomId('next')
+        .setLabel('Next')
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(pageIndex === totalPages - 1)
+    );
+
+  const messageOptions = { embeds: [embed], components: [row] };
+
+  const replyMessage = context.deferred
+    ? await context.editReply(messageOptions)
+    : await context.reply(messageOptions);
+
+  const filter = i => i.user.id === context.user.id && (i.customId === 'prev' || i.customId === 'next');
+  const collector = replyMessage.createMessageComponentCollector({
+    filter,
+    componentType: ComponentType.Button,
+    time: 60000,
+  });
+
+  collector.on('collect', async i => {
+    if (i.customId === 'prev' && pageIndex > 0) {
+      pageIndex--;
+    } else if (i.customId === 'next' && pageIndex < totalPages - 1) {
+      pageIndex++;
+    }
+
+    await sendModlogEmbed(i, user, logs, pageIndex);
+    await i.deferUpdate();
+  });
+
+  collector.on('end', () => {
+    const disabledRow = new ActionRowBuilder()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId('prev')
+          .setLabel('Previous')
+          .setStyle(ButtonStyle.Primary)
+          .setDisabled(true),
+        new ButtonBuilder()
+          .setCustomId('next')
+          .setLabel('Next')
+          .setStyle(ButtonStyle.Primary)
+          .setDisabled(true)
+      );
+
+    replyMessage.edit({ components: [disabledRow] });
+  });
 }
