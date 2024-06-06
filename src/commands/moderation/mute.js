@@ -1,5 +1,29 @@
 const { ApplicationCommandOptionType, EmbedBuilder } = require("discord.js");
 const ms = require("ms");
+const fs = require('fs');
+const path = require('path');
+
+const logsFilePath = path.join(__dirname, 'modlogs.json');
+
+function getLogs() {
+  if (!fs.existsSync(logsFilePath)) {
+    fs.writeFileSync(logsFilePath, JSON.stringify({}));
+  }
+  return JSON.parse(fs.readFileSync(logsFilePath));
+}
+
+function saveLogs(logs) {
+  fs.writeFileSync(logsFilePath, JSON.stringify(logs, null, 2));
+}
+
+function logAction(userId, action) {
+  const logs = getLogs();
+  if (!logs[userId]) {
+    logs[userId] = [];
+  }
+  logs[userId].push(action);
+  saveLogs(logs);
+}
 
 module.exports = {
   name: "mute",
@@ -148,27 +172,14 @@ async function mute(issuer, target, reason, duration) {
       }
     }, duration);
 
-    // Create and send the embed
-    const logChannel = issuer.guild.channels.cache.get(logChannelId);
-    if (logChannel) {
-      const embed = new EmbedBuilder()
-        .setAuthor({ name: `Moderation - Mute`, iconURL: issuer.user.displayAvatarURL() })
-        .setColor("#FF0000")
-        .setThumbnail(target.displayAvatarURL())
-        .addFields(
-          { name: "Member", value: `${target.tag} [${target.id}]`, inline: false },
-          { name: "Reason", value: reason || "No reason provided", inline: false },
-          { name: "Duration", value: ms(duration, { long: true }), inline: true },
-          { name: "Expires", value: `<t:${Math.round((Date.now() + duration) / 1000)}:R>`, inline: true }
-        )
-        .setFooter({
-          text: `Muted by ${issuer.user.tag} [${issuer.user.id}]`,
-          iconURL: issuer.user.displayAvatarURL(),
-        })
-        .setTimestamp();
-
-      await logChannel.send({ embeds: [embed] });
-    }
+    // Log the mute action
+    logAction(target.id, {
+      type: 'mute',
+      reason,
+      duration: ms(duration, { long: true }),
+      date: new Date().toISOString(),
+      issuer: issuer.user.tag,
+    });
 
     return `${target.username} is muted for ${ms(duration, { long: true })}!`;
   } catch (error) {

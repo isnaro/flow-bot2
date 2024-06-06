@@ -1,12 +1,34 @@
 const { ApplicationCommandOptionType, EmbedBuilder } = require("discord.js");
-const ms = require("ms");
+const fs = require('fs');
+const path = require('path');
+
+const logsFilePath = path.join(__dirname, 'modlogs.json');
+
+function getLogs() {
+  if (!fs.existsSync(logsFilePath)) {
+    fs.writeFileSync(logsFilePath, JSON.stringify({}));
+  }
+  return JSON.parse(fs.readFileSync(logsFilePath));
+}
+
+function saveLogs(logs) {
+  fs.writeFileSync(logsFilePath, JSON.stringify(logs, null, 2));
+}
+
+function logAction(userId, action) {
+  const logs = getLogs();
+  if (!logs[userId]) {
+    logs[userId] = [];
+  }
+  logs[userId].push(action);
+  saveLogs(logs);
+}
 
 module.exports = {
   name: "unmute",
   description: "Unmutes the specified member",
   category: "MODERATION",
   botPermissions: ["ManageRoles"],
-  // Removed userPermissions as it is no longer needed
   command: {
     enabled: true,
     usage: "<ID|@member> [reason]",
@@ -81,6 +103,14 @@ async function unmute(issuer, target, reason) {
   try {
     await member.roles.remove(mutedRole, reason);
 
+    // Log the unmute action
+    logAction(target.id, {
+      type: 'unmute',
+      reason,
+      date: new Date().toISOString(),
+      issuer: issuer.user.tag,
+    });
+
     // Create and send the embed
     const logChannel = issuer.guild.channels.cache.get(logChannelId);
     if (logChannel) {
@@ -107,38 +137,3 @@ async function unmute(issuer, target, reason) {
     return "Failed to unmute the user. Please try again later.";
   }
 }
-
-// Automatic Unmute logging
-
-async function automaticUnmute(member, issuer, reason) {
-  const mutedRoleId = "1232370037843689472";
-  const mutedRole = member.guild.roles.cache.get(mutedRoleId);
-
-  if (!mutedRole) {
-    console.error("Muted role not found in the server.");
-    return;
-  }
-
-  try {
-    await member.roles.remove(mutedRole, reason);
-
-    const embed = new EmbedBuilder()
-      .setTitle("Moderation - Unmute")
-      .setDescription(`${member} has been automatically unmuted after a mute.`)
-      .setColor("#00ff00") // Green color for successful action
-      .addFields(
-        { name: "Reason", value: reason },
-        { name: "Responsible Moderator", value: `${issuer} (${issuer.id})` }
-      );
-
-    const logChannel = member.guild.channels.cache.get("1225439125776367697");
-    if (logChannel) {
-      logChannel.send({ embeds: [embed] });
-    } else {
-      console.error("Log channel not found.");
-    }
-  } catch (error) {
-    console.error("Error unmuting user:", error);
-  }
-}
-

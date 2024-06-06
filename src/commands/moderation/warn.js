@@ -1,14 +1,35 @@
-const { warnTarget, timeoutTarget, kickTarget } = require("@helpers/ModUtils");
-const { ApplicationCommandOptionType } = require("discord.js");
+const { ApplicationCommandOptionType, EmbedBuilder } = require("discord.js");
+const fs = require('fs');
+const path = require('path');
 
-/**
- * @type {import("@structures/Command")}
- */
+const logsFilePath = path.join(__dirname, 'modlogs.json');
+
+function getLogs() {
+  if (!fs.existsSync(logsFilePath)) {
+    fs.writeFileSync(logsFilePath, JSON.stringify({}));
+  }
+  return JSON.parse(fs.readFileSync(logsFilePath));
+}
+
+function saveLogs(logs) {
+  fs.writeFileSync(logsFilePath, JSON.stringify(logs, null, 2));
+}
+
+function logAction(userId, action) {
+  const logs = getLogs();
+  if (!logs[userId]) {
+    logs[userId] = [];
+  }
+  logs[userId].push(action);
+  saveLogs(logs);
+}
+
 module.exports = {
   name: "warn",
-  description: "warns the specified member",
+  description: "Warns the specified member",
   category: "MODERATION",
-  userPermissions: ["ViewAuditLog"], // Changed permission requirement
+  botPermissions: ["ManageMessages"],
+  userPermissions: ["ManageMessages"],
   command: {
     enabled: true,
     usage: "<ID|@member> [reason]",
@@ -19,13 +40,13 @@ module.exports = {
     options: [
       {
         name: "user",
-        description: "the target member",
+        description: "The target member",
         type: ApplicationCommandOptionType.User,
         required: true,
       },
       {
         name: "reason",
-        description: "reason for warn",
+        description: "Reason for warning",
         type: ApplicationCommandOptionType.String,
         required: false,
       },
@@ -33,17 +54,19 @@ module.exports = {
   },
 
   async messageRun(message, args) {
-    const target = await message.guild.resolveMember(args[0], true);
+    const match = await message.client.resolveUsers(args[0], true);
+    const target = match[0];
     if (!target) return message.safeReply(`No user found matching ${args[0]}`);
+
     const reason = args.slice(1).join(" ") || "No reason provided";
+
     const response = await warn(message.member, target, reason);
     await message.safeReply(response);
   },
 
   async interactionRun(interaction) {
-    const user = interaction.options.getUser("user");
+    const target = interaction.options.getUser("user");
     const reason = interaction.options.getString("reason") || "No reason provided";
-    const target = await interaction.guild.members.fetch(user.id);
 
     const response = await warn(interaction.member, target, reason);
     await interaction.followUp(response);
@@ -51,75 +74,51 @@ module.exports = {
 };
 
 async function warn(issuer, target, reason) {
+  const logChannelId = "1225439125776367697"; // Channel to send the embed
+
   try {
-    const response = await warnTarget(issuer, target, reason);
-    if (typeof response === "boolean") {
-      try {
-        await target.send(
-          `## ⚠️⚠️ You have been warned in FLOW for: **${reason}** ##\n\n`
-          + `### Please follow <#1200477076113850468> to avoid further actions. If you believe the warn was unfair, create a ticket through <#1200479692927549640> or from [FLOW Appeal](https://discord.gg/kJFuMk6ZFS)`
-        );
-      } catch (err) {
-        console.error(`Failed to send DM to ${target.user.username}:`, err);
-      }
-      return `${target.user.username} has been warned!`;
+    // Send DM to the user
+    const dmMessage = `## ⚠️ You have been warned in ${issuer.guild.name} for: ***${reason}*** ##
+
+### Please follow the server rules <#1200477076113850468> to avoid further actions. ###`;
+
+    try {
+      await target.send(dmMessage);
+    } catch (err) {
+      console.error(`Failed to send DM to ${target.username}:`, err);
     }
-    switch (response) {
-      case "BOT_PERM":
-        return `I do not have permission to warn ${target.user.username}`;
-      case "MEMBER_PERM":
-        return `You do not have permission to warn ${target.user.username}`;
-      default:
-        return `Failed to warn ${target.user.username}`;
+
+    // Log the warning action
+    logAction(target.id, {
+      type: 'warn',
+      reason,
+      date: new Date().toISOString(),
+      issuer: issuer.user.tag,
+    });
+
+    // Create and send the embed
+    const logChannel = issuer.guild.channels.cache.get(logChannelId);
+    if (logChannel) {
+      const embed = new EmbedBuilder()
+        .setAuthor({ name: `Moderation - Warn`, iconURL: issuer.user.displayAvatarURL() })
+        .setColor("#FFA500")
+        .setThumbnail(target.displayAvatarURL())
+        .addFields(
+          { name: "Member", value: `${target.tag} [${target.id}]`, inline: false },
+          { name: "Reason", value: reason || "No reason provided", inline: false }
+        )
+        .setFooter({
+          text: `Warned by ${issuer.user.tag} [${issuer.user.id}]`,
+          iconURL: issuer.user.displayAvatarURL(),
+        })
+        .setTimestamp();
+
+      await logChannel.send({ embeds: [embed] });
     }
+
+    return `${target.username} has been warned.`;
   } catch (error) {
     console.error("Error warning user:", error);
     return "Failed to warn the user. Please try again later.";
-  }
-}
-
-// Automate Actions After Reaching Certain Number of Warnings
-const WARN_THRESHOLD_1 = 3;
-const WARN_THRESHOLD_2 = 4;
-
-async function warnTargetWithAutoActions(issuer, target, reason) {
-  const warnResponse = await warnTarget(issuer, target, reason);
-
-  if (typeof warnResponse === "boolean") {
-    const memberDb = await getMember(target.guild.id, target.id);
-    const warnings = memberDb.warnings + 1;
-
-    // Apply timeout after 3rd warning
-    if (warnings === WARN_THRESHOLD_1) {
-      const timeoutDuration = 72 * 60 * 60 * 1000; // 72 hours in milliseconds
-      await timeoutTarget(issuer, target, timeoutDuration, `Auto Timeout after ${WARN_THRESHOLD_1} warnings`);
-
-      // Send DM after timeout
-      setTimeout(async () => {
-        try {
-          await target.send(
-            `## ⌛⌛ Your timeout in FLOW has ended ##
-
-### You are now able to rejoin the server and participate again. ###`
-          );
-        } catch (err) {
-          console.error(`Failed to send DM to ${target.user.username}:`, err);
-        }
-      }, timeoutDuration);
-    }
-
-    // Kick member after 4th warning
-    if (warnings === WARN_THRESHOLD_2) {
-      await kickTarget(issuer, target, "Auto Kick after reaching 4 warnings");
-      return true;
-    }
-
-    // Update warnings count
-    memberDb.warnings = warnings;
-    await memberDb.save();
-
-    return true;
-  } else {
-    return warnResponse;
   }
 }

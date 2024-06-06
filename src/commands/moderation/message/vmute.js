@@ -1,8 +1,36 @@
 const { ChannelType, EmbedBuilder, PermissionsBitField } = require("discord.js");
 const ms = require("ms");
+const fs = require('fs');
+const path = require('path');
 
 // Map to store muted members and their unmute timeouts
 const mutedMembers = new Map();
+
+// Path to the JSON file for logs
+const logsFilePath = path.join(__dirname, 'modlogs.json');
+
+// Function to get logs from the JSON file
+function getLogs() {
+  if (!fs.existsSync(logsFilePath)) {
+    fs.writeFileSync(logsFilePath, JSON.stringify({}));
+  }
+  return JSON.parse(fs.readFileSync(logsFilePath));
+}
+
+// Function to save logs to the JSON file
+function saveLogs(logs) {
+  fs.writeFileSync(logsFilePath, JSON.stringify(logs, null, 2));
+}
+
+// Function to log an action to the JSON file
+function logAction(userId, action) {
+  const logs = getLogs();
+  if (!logs[userId]) {
+    logs[userId] = [];
+  }
+  logs[userId].push(action);
+  saveLogs(logs);
+}
 
 module.exports = {
   name: "vmute",
@@ -101,6 +129,15 @@ async function vmute(message, target, reason, duration) {
 
       await sendMuteDM(target, reason, duration);
 
+      // Log the mute action
+      logAction(target.id, {
+        type: 'vmute',
+        reason,
+        duration: duration ? ms(duration, { long: true }) : "Indefinite",
+        date: new Date().toISOString(),
+        issuer: message.author.tag,
+      });
+
       // Create and send the embed
       const embed = new EmbedBuilder()
         .setAuthor({
@@ -160,6 +197,14 @@ async function sendMuteDM(member, reason, duration) {
 async function logUnmute(member, moderator, reason) {
   const logChannelId = "1225439125776367697"; // Log channel ID
   const logChannel = member.guild.channels.cache.get(logChannelId);
+
+  // Log the unmute action
+  logAction(member.id, {
+    type: 'vunmute',
+    reason,
+    date: new Date().toISOString(),
+    issuer: moderator.tag,
+  });
 
   if (!logChannel) return;
 

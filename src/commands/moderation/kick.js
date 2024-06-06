@@ -1,5 +1,29 @@
 const { kickTarget } = require("@helpers/ModUtils");
-const { ApplicationCommandOptionType, EmbedBuilder } = require("discord.js");
+const { ApplicationCommandOptionType } = require("discord.js");
+const fs = require('fs');
+const path = require('path');
+
+const logsFilePath = path.join(__dirname, 'modlogs.json');
+
+function getLogs() {
+  if (!fs.existsSync(logsFilePath)) {
+    fs.writeFileSync(logsFilePath, JSON.stringify({}));
+  }
+  return JSON.parse(fs.readFileSync(logsFilePath));
+}
+
+function saveLogs(logs) {
+  fs.writeFileSync(logsFilePath, JSON.stringify(logs, null, 2));
+}
+
+function logAction(userId, action) {
+  const logs = getLogs();
+  if (!logs[userId]) {
+    logs[userId] = [];
+  }
+  logs[userId].push(action);
+  saveLogs(logs);
+}
 
 /**
  * @type {import("@structures/Command")}
@@ -52,8 +76,6 @@ module.exports = {
 };
 
 async function kick(issuer, target, reason) {
-  const logChannelId = "1225439125776367697"; // Channel to send the embed
-
   try {
     const dmMessage = `## ⚠️⚠️ You have been KICKED from FLOW for : ***${reason}*** ##
 
@@ -71,26 +93,12 @@ async function kick(issuer, target, reason) {
 
     const response = await kickTarget(issuer, target, reason);
     if (typeof response === "boolean") {
-      // Send log embed
-      const logChannel = issuer.guild.channels.cache.get(logChannelId);
-      if (logChannel) {
-        const embed = new EmbedBuilder()
-          .setAuthor({ name: `Moderation - Kick`, iconURL: issuer.user.displayAvatarURL() })
-          .setColor("#FF0000")
-          .setThumbnail(target.user.displayAvatarURL())
-          .addFields(
-            { name: "Member", value: `${target.user.tag} [${target.user.id}]`, inline: false },
-            { name: "Reason", value: reason, inline: false },
-          )
-          .setFooter({
-            text: `Kicked by ${issuer.user.tag} [${issuer.user.id}]`,
-            iconURL: issuer.user.displayAvatarURL(),
-          })
-          .setTimestamp();
-
-        await logChannel.send({ embeds: [embed] });
-      }
-
+      logAction(target.user.id, {
+        type: 'kick',
+        reason,
+        date: new Date().toISOString(),
+        issuer: issuer.user.tag,
+      });
       return `${target.user.username} is kicked!`;
     }
     switch (response) {
