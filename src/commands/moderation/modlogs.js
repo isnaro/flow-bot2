@@ -12,12 +12,8 @@ function getLogs() {
   return JSON.parse(fs.readFileSync(logsFilePath));
 }
 
-function saveLogs(logs) {
-  fs.writeFileSync(logsFilePath, JSON.stringify(logs, null, 2));
-}
-
 /**
- * @type {import("@structures/Command")}
+ * @type {import('@structures/Command')}
  */
 module.exports = {
   name: "modlogs",
@@ -73,10 +69,10 @@ async function sendModlogEmbed(context, user, logs, pageIndex) {
   const totalPages = Math.ceil(reversedLogs.length / itemsPerPage);
 
   const embed = new MessageEmbed()
-    .setAuthor({ name: `Moderation Logs for ${user.tag}`, iconURL: user.displayAvatarURL() })
+    .setAuthor(`Moderation Logs for ${user.tag}`, user.displayAvatarURL())
     .setColor("#FF0000")
     .setThumbnail(user.displayAvatarURL())
-    .setFooter({ text: `Page ${pageIndex + 1} of ${totalPages}` });
+    .setFooter(`Page ${pageIndex + 1} of ${totalPages}`);
 
   const start = pageIndex * itemsPerPage;
   const end = start + itemsPerPage;
