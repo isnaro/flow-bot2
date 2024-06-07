@@ -114,7 +114,7 @@ async function massban(issuer, targets, reason, duration) {
             }
           }, duration);
 
-        }, 1000); // 1-second delay before banning
+        }, 100); // 100ms delay before banning
 
       } else {
         try {
@@ -141,7 +141,7 @@ async function massban(issuer, targets, reason, duration) {
               .setTimestamp();
             await logChannel.send({ embeds: [embed] });
           }
-        }, 1000); // 1-second delay before banning
+        }, 100); // 100ms delay before banning
       }
     }
 
