@@ -9,7 +9,6 @@ require("@helpers/extenders/GuildChannel");
 const { checkForUpdates } = require("@helpers/BotUtils");
 const { initializeMongoose } = require("@src/database/mongoose");
 const { BotClient } = require("@src/structures");
-const { validateConfiguration } = require("@helpers/Validator");
 const keepAlive = require('./keep_alive.js');
 
 validateConfiguration();

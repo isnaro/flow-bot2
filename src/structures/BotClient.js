@@ -1,11 +1,5 @@
-const {
-  Client,
-  Collection,
-  GatewayIntentBits,
-  Partials,
-  WebhookClient,
-  ApplicationCommandType,
-} = require("discord.js");
+// src/structures/BotClient.js
+const { Client, Collection, GatewayIntentBits, Partials, WebhookClient, ApplicationCommandType } = require("discord.js");
 const path = require("path");
 const { table } = require("table");
 const Logger = require("../helpers/Logger");
@@ -16,6 +10,7 @@ const CommandCategory = require("./CommandCategory");
 const lavaclient = require("../handlers/lavaclient");
 const giveawaysHandler = require("../handlers/giveaway");
 const { DiscordTogether } = require("discord-together");
+const disbut = require("discord-buttons");
 
 module.exports = class BotClient extends Client {
   constructor() {
@@ -36,6 +31,8 @@ module.exports = class BotClient extends Client {
       },
       restRequestTimeout: 20000,
     });
+
+    disbut(this); // Initialize discord-buttons with the client
 
     this.wait = require("util").promisify(setTimeout); // await client.wait(1000) - Wait 1 second
     this.config = require("@root/config"); // load the config file

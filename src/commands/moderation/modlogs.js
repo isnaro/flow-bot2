@@ -1,8 +1,9 @@
+// src/commands/modlogs.js
 const { ApplicationCommandOptionType, MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
 const fs = require('fs');
 const path = require('path');
 
-const logsFilePath = path.join(__dirname, 'modlogs.json');
+const logsFilePath = path.join(__dirname, '../modlogs.json');
 
 function getLogs() {
   if (!fs.existsSync(logsFilePath)) {
@@ -11,33 +12,40 @@ function getLogs() {
   return JSON.parse(fs.readFileSync(logsFilePath));
 }
 
+function saveLogs(logs) {
+  fs.writeFileSync(logsFilePath, JSON.stringify(logs, null, 2));
+}
+
 /**
  * @type {import("@structures/Command")}
  */
 module.exports = {
   name: "modlogs",
   description: "Displays moderation logs for a user",
-  category: "MODERATION",
-  command: {
-    enabled: true,
-    usage: "<ID|@member>",
-    minArgsCount: 1,
-  },
-  slashCommand: {
-    enabled: true,
-    options: [
-      {
-        name: "user",
-        description: "The target member",
-        type: ApplicationCommandOptionType.User,
-        required: true,
-      },
-    ],
+  options: [
+    {
+      name: "user",
+      description: "The target member",
+      type: ApplicationCommandOptionType.User,
+      required: true,
+    },
+  ],
+  
+  async execute(interaction) {
+    if (!hasRequiredRole(interaction.member)) {
+      return interaction.reply({ content: "You do not have the required role to use this command.", ephemeral: true });
+    }
+
+    const user = interaction.options.getUser("user");
+    const target = await interaction.guild.members.fetch(user.id);
+    const logs = getLogs()[target.user.id] || [];
+
+    await sendModlogEmbed(interaction, target.user, logs, 0);
   },
 
   async messageRun(message, args) {
     if (!hasRequiredRole(message.member)) {
-      return;
+      return message.safeReply("You do not have the required role to use this command.");
     }
 
     const target = await message.guild.resolveMember(args[0], true);
@@ -45,18 +53,6 @@ module.exports = {
 
     const logs = getLogs()[target.user.id] || [];
     await sendModlogEmbed(message, target.user, logs, 0);
-  },
-
-  async interactionRun(interaction) {
-    if (!hasRequiredRole(interaction.member)) {
-      return;
-    }
-
-    const user = interaction.options.getUser("user");
-    const target = await interaction.guild.members.fetch(user.id);
-
-    const logs = getLogs()[target.user.id] || [];
-    await sendModlogEmbed(interaction, target.user, logs, 0);
   },
 };
 
