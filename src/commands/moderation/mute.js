@@ -146,6 +146,36 @@ async function mute(issuer, target, reason, duration) {
 
     await member.roles.add(mutedRole, reason);
 
+    // Log the mute action
+    logAction(target.id, {
+      type: 'mute',
+      reason,
+      duration: ms(duration, { long: true }),
+      date: new Date().toISOString(),
+      issuer: issuer.user.tag,
+      issuerId: issuer.user.id,
+    });
+
+    // Create and send the embed
+    const embed = new EmbedBuilder()
+      .setAuthor({ name: `Moderation - Mute`, iconURL: issuer.user.displayAvatarURL() })
+      .setColor("#FF0000")
+      .setThumbnail(target.displayAvatarURL())
+      .addFields(
+        { name: "Member", value: `${target.tag} [${target.id}]`, inline: false },
+        { name: "Reason", value: reason || "No reason provided", inline: false },
+        { name: "Duration", value: ms(duration, { long: true }), inline: true },
+        { name: "Responsible Moderator", value: `${issuer.user.tag} [${issuer.user.id}]`, inline: false },
+        { name: "Mute End Time", value: endTimeString, inline: false }
+      )
+      .setFooter({ text: `Muted by ${issuer.user.tag}`, iconURL: issuer.user.displayAvatarURL() })
+      .setTimestamp();
+
+    const logChannel = issuer.guild.channels.cache.get(logChannelId);
+    if (logChannel) {
+      await logChannel.send({ embeds: [embed] });
+    }
+
     setTimeout(async () => {
       try {
         await member.roles.remove(mutedRole, "Mute duration expired");
@@ -159,11 +189,10 @@ async function mute(issuer, target, reason, duration) {
             { name: "User", value: `${target.tag} [${target.id}]`, inline: true },
             { name: "Moderator", value: "System", inline: true },
             { name: "Reason", value: "Mute duration expired", inline: true },
-            { name: "Unmute Time", value: new Date(Date.now()).toLocaleString(), inline: true }
+            { name: "Unmute Time", value: new Date().toLocaleString(), inline: true }
           )
           .setTimestamp();
 
-        const logChannel = issuer.guild.channels.cache.get(logChannelId);
         if (logChannel) {
           await logChannel.send({ embeds: [unmuteEmbed] });
         }
@@ -171,15 +200,6 @@ async function mute(issuer, target, reason, duration) {
         console.error(`Failed to unmute ${target.username} after temporary mute:`, error);
       }
     }, duration);
-
-    // Log the mute action
-    logAction(target.id, {
-      type: 'mute',
-      reason,
-      duration: ms(duration, { long: true }),
-      date: new Date().toISOString(),
-      issuer: issuer.user.tag,
-    });
 
     return `${target.username} is muted for ${ms(duration, { long: true })}!`;
   } catch (error) {
