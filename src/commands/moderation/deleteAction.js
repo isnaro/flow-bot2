@@ -49,7 +49,7 @@ module.exports = {
 
   async interactionRun(interaction) {
     const target = interaction.options.getUser("user");
-    if (!target) return interaction.followUp(`No user found matching ${args[0]}`);
+    if (!target) return interaction.followUp(`No user found matching the provided user.`);
 
     const actionNumber = interaction.options.getInteger("number");
     if (isNaN(actionNumber)) return interaction.followUp(`Invalid action number: ${actionNumber}`);
