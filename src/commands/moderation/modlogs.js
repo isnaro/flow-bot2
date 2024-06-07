@@ -67,11 +67,14 @@ function hasRequiredRole(member) {
 
 async function sendModlogEmbed(context, user, logs, pageIndex) {
   if (logs.length === 0) {
-    return context.reply(`No logs found for ${user.tag}`);
+    return context.reply({ content: `No logs found for ${user.tag}`, ephemeral: true });
   }
 
+  // Reverse the logs array to display the newest actions first
+  const reversedLogs = logs.slice().reverse();
+
   const itemsPerPage = 5;
-  const totalPages = Math.ceil(logs.length / itemsPerPage);
+  const totalPages = Math.ceil(reversedLogs.length / itemsPerPage);
 
   const embed = new EmbedBuilder()
     .setAuthor({ name: `Moderation Logs for ${user.tag}`, iconURL: user.displayAvatarURL() })
@@ -81,7 +84,7 @@ async function sendModlogEmbed(context, user, logs, pageIndex) {
 
   const start = pageIndex * itemsPerPage;
   const end = start + itemsPerPage;
-  const pageItems = logs.slice(start, end);
+  const pageItems = reversedLogs.slice(start, end);
 
   pageItems.forEach((log, index) => {
     const actionNumber = start + index + 1;
@@ -110,12 +113,14 @@ async function sendModlogEmbed(context, user, logs, pageIndex) {
 
   const messageOptions = { embeds: [embed], components: [row] };
 
-  const replyMessage = context.deferred
-    ? await context.editReply(messageOptions)
-    : await context.reply(messageOptions);
+  if (context.deferred || context.replied) {
+    await context.editReply(messageOptions);
+  } else {
+    await context.reply(messageOptions);
+  }
 
   const filter = i => i.user.id === context.user.id && (i.customId === 'prev' || i.customId === 'next');
-  const collector = replyMessage.createMessageComponentCollector({
+  const collector = context.channel.createMessageComponentCollector({
     filter,
     componentType: ComponentType.Button,
     time: 60000,
@@ -128,11 +133,11 @@ async function sendModlogEmbed(context, user, logs, pageIndex) {
       pageIndex++;
     }
 
-    await sendModlogEmbed(i, user, logs, pageIndex);
     await i.deferUpdate();
+    await sendModlogEmbed(i, user, reversedLogs, pageIndex);
   });
 
-  collector.on('end', () => {
+  collector.on('end', async () => {
     const disabledRow = new ActionRowBuilder()
       .addComponents(
         new ButtonBuilder()
@@ -147,6 +152,10 @@ async function sendModlogEmbed(context, user, logs, pageIndex) {
           .setDisabled(true)
       );
 
-    replyMessage.edit({ components: [disabledRow] });
+    if (context.replied || context.deferred) {
+      await context.editReply({ components: [disabledRow] });
+    } else {
+      await context.editReply({ components: [disabledRow] });
+    }
   });
 }
