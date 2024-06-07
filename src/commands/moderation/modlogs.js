@@ -1,4 +1,4 @@
-const { ApplicationCommandOptionType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = require("discord.js");
+const { ApplicationCommandOptionType, MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
 const fs = require('fs');
 const path = require('path');
 
@@ -76,7 +76,7 @@ async function sendModlogEmbed(context, user, logs, pageIndex) {
   const itemsPerPage = 5;
   const totalPages = Math.ceil(reversedLogs.length / itemsPerPage);
 
-  const embed = new EmbedBuilder()
+  const embed = new MessageEmbed()
     .setAuthor({ name: `Moderation Logs for ${user.tag}`, iconURL: user.displayAvatarURL() })
     .setColor("#FF0000")
     .setThumbnail(user.displayAvatarURL())
@@ -97,17 +97,17 @@ async function sendModlogEmbed(context, user, logs, pageIndex) {
     embed.addFields({ name: '\u200B', value: '\u200B' });
   });
 
-  const row = new ActionRowBuilder()
+  const row = new MessageActionRow()
     .addComponents(
-      new ButtonBuilder()
+      new MessageButton()
         .setCustomId('prev')
         .setLabel('Previous')
-        .setStyle(ButtonStyle.Primary)
+        .setStyle('PRIMARY')
         .setDisabled(pageIndex === 0),
-      new ButtonBuilder()
+      new MessageButton()
         .setCustomId('next')
         .setLabel('Next')
-        .setStyle(ButtonStyle.Primary)
+        .setStyle('PRIMARY')
         .setDisabled(pageIndex === totalPages - 1)
     );
 
@@ -122,7 +122,7 @@ async function sendModlogEmbed(context, user, logs, pageIndex) {
   const filter = i => i.user.id === context.user.id && (i.customId === 'prev' || i.customId === 'next');
   const collector = context.channel.createMessageComponentCollector({
     filter,
-    componentType: ComponentType.Button,
+    componentType: 'BUTTON',
     time: 60000,
   });
 
@@ -138,17 +138,17 @@ async function sendModlogEmbed(context, user, logs, pageIndex) {
   });
 
   collector.on('end', async () => {
-    const disabledRow = new ActionRowBuilder()
+    const disabledRow = new MessageActionRow()
       .addComponents(
-        new ButtonBuilder()
+        new MessageButton()
           .setCustomId('prev')
           .setLabel('Previous')
-          .setStyle(ButtonStyle.Primary)
+          .setStyle('PRIMARY')
           .setDisabled(true),
-        new ButtonBuilder()
+        new MessageButton()
           .setCustomId('next')
           .setLabel('Next')
-          .setStyle(ButtonStyle.Primary)
+          .setStyle('PRIMARY')
           .setDisabled(true)
       );
 
