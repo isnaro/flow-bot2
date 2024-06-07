@@ -29,7 +29,6 @@ module.exports = {
   name: "mute",
   description: "Mutes the specified member",
   category: "MODERATION",
-  botPermissions: ["ManageRoles"],
   command: {
     enabled: true,
     aliases: ["bl3"],
@@ -128,7 +127,7 @@ async function mute(issuer, target, reason, duration) {
 
   try {
     const endTime = new Date(Date.now() + duration);
-    const endTimeString = endTime.toLocaleString();
+    const endTimeString = endTime.toLocaleString('en-GB', { timeZone: 'Africa/Algiers', hour12: false });
 
     const dmMessage = `### 🤐 You have been muted in **${issuer.guild.name}** for __***${ms(duration, { long: true })}***__ reason: __***${reason}***__ ###
 
@@ -189,7 +188,7 @@ async function mute(issuer, target, reason, duration) {
             { name: "User", value: `${target.tag} [${target.id}]`, inline: true },
             { name: "Moderator", value: "System", inline: true },
             { name: "Reason", value: "Mute duration expired", inline: true },
-            { name: "Unmute Time", value: new Date().toLocaleString(), inline: true }
+            { name: "Unmute Time", value: new Date().toLocaleString('en-GB', { timeZone: 'Africa/Algiers', hour12: false }), inline: true }
           )
           .setTimestamp();
 
