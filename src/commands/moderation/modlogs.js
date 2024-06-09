@@ -1,4 +1,4 @@
-const { ApplicationCommandOptionType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = require("discord.js");
+const { ApplicationCommandOptionType, EmbedBuilder } = require("discord.js");
 const fs = require('fs');
 const path = require('path');
 
@@ -32,7 +32,7 @@ module.exports = {
   category: "MODERATION",
   command: {
     enabled: true,
-    usage: "<ID|@member>",
+    usage: "<ID|@member> [page]",
     minArgsCount: 1,
   },
   slashCommand: {
@@ -43,6 +43,12 @@ module.exports = {
         description: "The target member",
         type: ApplicationCommandOptionType.User,
         required: true,
+      },
+      {
+        name: "page",
+        description: "The page number of logs to display",
+        type: ApplicationCommandOptionType.Integer,
+        required: false,
       },
     ],
   },
@@ -56,8 +62,9 @@ module.exports = {
       const target = await message.guild.members.fetch(args[0]).catch(() => null);
       if (!target) return message.safeReply(`No user found matching ${args[0]}`);
 
+      const page = args[1] ? parseInt(args[1]) - 1 : 0;
       const logs = getLogs()[target.user.id] || [];
-      await sendModlogEmbed(message, target.user, logs, 0);
+      await sendModlogEmbed(message, target.user, logs, page);
     } catch (error) {
       console.error("Error in messageRun:", error);
       message.safeReply("An error occurred while running this command.");
@@ -71,11 +78,12 @@ module.exports = {
       }
 
       const user = interaction.options.getUser("user");
+      const page = interaction.options.getInteger("page") ? interaction.options.getInteger("page") - 1 : 0;
       const target = await interaction.guild.members.fetch(user.id).catch(() => null);
       if (!target) return interaction.followUp(`No user found matching ${user.id}`);
 
       const logs = getLogs()[target.user.id] || [];
-      await sendModlogEmbed(interaction, target.user, logs, 0);
+      await sendModlogEmbed(interaction, target.user, logs, page);
     } catch (error) {
       console.error("Error in interactionRun:", error);
       interaction.followUp("An error occurred while running this command.");
@@ -96,6 +104,7 @@ async function sendModlogEmbed(context, user, logs, pageIndex) {
 
     const itemsPerPage = 5;
     const totalPages = Math.ceil(logs.length / itemsPerPage);
+    if (pageIndex >= totalPages) pageIndex = totalPages - 1;
 
     const embed = new EmbedBuilder()
       .setAuthor({ name: `Moderation Logs for ${user.tag}`, iconURL: user.displayAvatarURL() })
@@ -107,9 +116,9 @@ async function sendModlogEmbed(context, user, logs, pageIndex) {
     const end = start + itemsPerPage;
     const pageItems = logs.slice(start, end);
 
-    pageItems.forEach(log => {
+    pageItems.forEach((log, index) => {
       embed.addFields(
-        { name: "Action", value: log.type, inline: true },
+        { name: `Action ${start + index + 1}`, value: log.type, inline: true },
         { name: "Reason", value: log.reason, inline: true },
         { name: "Date", value: new Date(log.date).toLocaleString(), inline: true },
         { name: "Issuer", value: log.issuer, inline: true },
@@ -117,61 +126,7 @@ async function sendModlogEmbed(context, user, logs, pageIndex) {
       );
     });
 
-    const row = new ActionRowBuilder()
-      .addComponents(
-        new ButtonBuilder()
-          .setCustomId('prev')
-          .setLabel('Previous')
-          .setStyle(ButtonStyle.Primary)
-          .setDisabled(pageIndex === 0),
-        new ButtonBuilder()
-          .setCustomId('next')
-          .setLabel('Next')
-          .setStyle(ButtonStyle.Primary)
-          .setDisabled(pageIndex === totalPages - 1)
-      );
-
-    const messageOptions = { embeds: [embed], components: [row] };
-
-    const replyMessage = context.deferred
-      ? await context.editReply(messageOptions)
-      : await context.reply(messageOptions);
-
-    const filter = i => i.user.id === context.user.id && (i.customId === 'prev' || i.customId === 'next');
-    const collector = replyMessage.createMessageComponentCollector({
-      filter,
-      componentType: ComponentType.Button,
-      time: 60000,
-    });
-
-    collector.on('collect', async i => {
-      if (i.customId === 'prev' && pageIndex > 0) {
-        pageIndex--;
-      } else if (i.customId === 'next' && pageIndex < totalPages - 1) {
-        pageIndex++;
-      }
-
-      await sendModlogEmbed(i, user, logs, pageIndex);
-      await i.deferUpdate();
-    });
-
-    collector.on('end', () => {
-      const disabledRow = new ActionRowBuilder()
-        .addComponents(
-          new ButtonBuilder()
-            .setCustomId('prev')
-            .setLabel('Previous')
-            .setStyle(ButtonStyle.Primary)
-            .setDisabled(true),
-          new ButtonBuilder()
-            .setCustomId('next')
-            .setLabel('Next')
-            .setStyle(ButtonStyle.Primary)
-            .setDisabled(true)
-        );
-
-      replyMessage.edit({ components: [disabledRow] });
-    });
+    await context.reply({ embeds: [embed] });
   } catch (error) {
     console.error("Error in sendModlogEmbed:", error);
     console.log("Logs causing error:", logs);
