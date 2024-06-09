@@ -43,63 +43,110 @@ module.exports = {
   },
 
   async messageRun(message, args) {
-    if (!hasRequiredRole(message.member)) {
-      return message.safeReply("You do not have the required role to use this command.");
+    try {
+      console.log("messageRun - args:", args);
+
+      if (!hasRequiredRole(message.member)) {
+        console.log("messageRun - missing required role");
+        return message.safeReply("You do not have the required role to use this command.");
+      }
+
+      const target = await message.guild.members.fetch(args[0]).catch(err => {
+        console.error("messageRun - error fetching target:", err);
+        return null;
+      });
+      if (!target) {
+        console.log("messageRun - target not found:", args[0]);
+        return message.safeReply(`No user found matching ${args[0]}`);
+      }
+
+      const page = args[1] ? parseInt(args[1]) - 1 : 0;
+      const logs = getLogs()[target.user.id] || [];
+      console.log("messageRun - logs:", logs);
+
+      await sendModlogEmbed(message, target.user, logs, page);
+    } catch (error) {
+      console.error("Error in messageRun:", error);
+      message.safeReply("An error occurred while running this command.");
     }
-
-    const target = await message.guild.members.fetch(args[0]).catch(() => null);
-    if (!target) return message.safeReply(`No user found matching ${args[0]}`);
-
-    const page = args[1] ? parseInt(args[1]) - 1 : 0;
-    const logs = getLogs()[target.user.id] || [];
-    await sendModlogEmbed(message, target.user, logs, page);
   },
 
   async interactionRun(interaction) {
-    if (!hasRequiredRole(interaction.member)) {
-      return interaction.followUp("You do not have the required role to use this command.");
-    }
+    try {
+      console.log("interactionRun - options:", interaction.options);
 
-    const user = interaction.options.getUser("user");
-    const page = interaction.options.getInteger("page") ? interaction.options.getInteger("page") - 1 : 0;
-    const target = await interaction.guild.members.fetch(user.id);
-    const logs = getLogs()[target.user.id] || [];
-    await sendModlogEmbed(interaction, target.user, logs, page);
+      if (!hasRequiredRole(interaction.member)) {
+        console.log("interactionRun - missing required role");
+        return interaction.followUp("You do not have the required role to use this command.");
+      }
+
+      const user = interaction.options.getUser("user");
+      const page = interaction.options.getInteger("page") ? interaction.options.getInteger("page") - 1 : 0;
+      const target = await interaction.guild.members.fetch(user.id).catch(err => {
+        console.error("interactionRun - error fetching target:", err);
+        return null;
+      });
+      if (!target) {
+        console.log("interactionRun - target not found:", user.id);
+        return interaction.followUp(`No user found matching ${user.id}`);
+      }
+
+      const logs = getLogs()[target.user.id] || [];
+      console.log("interactionRun - logs:", logs);
+
+      await sendModlogEmbed(interaction, target.user, logs, page);
+    } catch (error) {
+      console.error("Error in interactionRun:", error);
+      interaction.followUp("An error occurred while running this command.");
+    }
   },
 };
 
 function hasRequiredRole(member) {
   const requiredRoles = ["1226166868952350721", "1226167494226608198"];
-  return requiredRoles.some(role => member.roles.cache.has(role));
+  const hasRole = requiredRoles.some(role => member.roles.cache.has(role));
+  console.log("hasRequiredRole - hasRole:", hasRole);
+  return hasRole;
 }
 
 async function sendModlogEmbed(context, user, logs, pageIndex) {
-  if (logs.length === 0) {
-    return context.reply(`No logs found for ${user.tag}`);
+  try {
+    console.log("sendModlogEmbed - logs:", logs);
+    console.log("sendModlogEmbed - pageIndex:", pageIndex);
+
+    if (logs.length === 0) {
+      console.log("sendModlogEmbed - no logs found for user:", user.tag);
+      return context.reply(`No logs found for ${user.tag}`);
+    }
+
+    const itemsPerPage = 5;
+    const totalPages = Math.ceil(logs.length / itemsPerPage);
+    if (pageIndex >= totalPages) pageIndex = totalPages - 1;
+
+    const embed = new EmbedBuilder()
+      .setAuthor({ name: `Moderation Logs for ${user.tag}`, iconURL: user.displayAvatarURL() })
+      .setColor("#FF0000")
+      .setThumbnail(user.displayAvatarURL())
+      .setFooter({ text: `Page ${pageIndex + 1} of ${totalPages}` });
+
+    const start = pageIndex * itemsPerPage;
+    const end = start + itemsPerPage;
+    const pageItems = logs.slice(start, end);
+    console.log("sendModlogEmbed - pageItems:", pageItems);
+
+    pageItems.forEach((log, index) => {
+      embed.addFields(
+        { name: `Action ${start + index + 1}`, value: log.type, inline: true },
+        { name: "Reason", value: log.reason, inline: true },
+        { name: "Date", value: new Date(log.date).toLocaleString(), inline: true },
+        { name: "Issuer", value: log.issuer, inline: true }
+      );
+    });
+
+    await context.reply({ embeds: [embed] });
+  } catch (error) {
+    console.error("Error in sendModlogEmbed:", error);
+    console.log("Logs causing error:", logs);
+    context.reply("An error occurred while generating the modlog embed.");
   }
-
-  const itemsPerPage = 5;
-  const totalPages = Math.ceil(logs.length / itemsPerPage);
-  if (pageIndex >= totalPages) pageIndex = totalPages - 1;
-
-  const embed = new EmbedBuilder()
-    .setAuthor({ name: `Moderation Logs for ${user.tag}`, iconURL: user.displayAvatarURL() })
-    .setColor("#FF0000")
-    .setThumbnail(user.displayAvatarURL())
-    .setFooter({ text: `Page ${pageIndex + 1} of ${totalPages}` });
-
-  const start = pageIndex * itemsPerPage;
-  const end = start + itemsPerPage;
-  const pageItems = logs.slice(start, end);
-
-  pageItems.forEach((log, index) => {
-    embed.addFields(
-      { name: `Action ${start + index + 1}`, value: log.type, inline: true },
-      { name: "Reason", value: log.reason, inline: true },
-      { name: "Date", value: new Date(log.date).toLocaleString(), inline: true },
-      { name: "Issuer", value: log.issuer, inline: true }
-    );
-  });
-
-  await context.reply({ embeds: [embed] });
 }
