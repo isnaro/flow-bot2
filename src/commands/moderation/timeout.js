@@ -117,13 +117,15 @@ async function timeout(issuer, target, ms, reason) {
   const response = await timeoutTarget(issuer, target, ms, reason);
   if (typeof response === "boolean") {
     // Log the timeout action
-    logAction(target.id, {
+    const action = {
       type: 'timeout',
       reason,
       duration: ems(ms, { long: true }),
       date: new Date().toISOString(),
       issuer: issuer.user.tag,
-    });
+    };
+    console.log("Logging action:", action);
+    logAction(target.id, action);
 
     return `${target.user.username} is timed out until ${endTimeString}!`;
   }

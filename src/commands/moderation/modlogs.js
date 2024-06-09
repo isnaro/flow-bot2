@@ -4,6 +4,7 @@ const path = require('path');
 
 const logsFilePath = path.join(__dirname, 'modlogs.json');
 
+// Utility functions for logging
 function getLogs() {
   if (!fs.existsSync(logsFilePath)) {
     fs.writeFileSync(logsFilePath, JSON.stringify({}));
@@ -11,9 +12,20 @@ function getLogs() {
   return JSON.parse(fs.readFileSync(logsFilePath));
 }
 
-/**
- * @type {import("@structures/Command")}
- */
+function saveLogs(logs) {
+  fs.writeFileSync(logsFilePath, JSON.stringify(logs, null, 2));
+}
+
+function logAction(userId, action) {
+  const logs = getLogs();
+  if (!logs[userId]) {
+    logs[userId] = [];
+  }
+  logs[userId].push(action);
+  saveLogs(logs);
+}
+
+// Main command module
 module.exports = {
   name: "modlogs",
   description: "Displays moderation logs for a user",
@@ -37,19 +49,14 @@ module.exports = {
 
   async messageRun(message, args) {
     try {
-      console.log("messageRun invoked with args:", args);
-
       if (!hasRequiredRole(message.member)) {
         return message.safeReply("You do not have the required role to use this command.");
       }
 
-      const target = await message.guild.members.fetch(args[0]).catch(error => {
-        console.error("Error fetching member:", error);
-        return null;
-      });
+      const target = await message.guild.members.fetch(args[0]).catch(() => null);
       if (!target) return message.safeReply(`No user found matching ${args[0]}`);
+
       const logs = getLogs()[target.user.id] || [];
-      console.log("Fetched logs for user:", logs);
       await sendModlogEmbed(message, target.user, logs, 0);
     } catch (error) {
       console.error("Error in messageRun:", error);
@@ -59,20 +66,15 @@ module.exports = {
 
   async interactionRun(interaction) {
     try {
-      console.log("interactionRun invoked with options:", interaction.options);
-
       if (!hasRequiredRole(interaction.member)) {
         return interaction.followUp("You do not have the required role to use this command.");
       }
 
       const user = interaction.options.getUser("user");
-      const target = await interaction.guild.members.fetch(user.id).catch(error => {
-        console.error("Error fetching member:", error);
-        return null;
-      });
+      const target = await interaction.guild.members.fetch(user.id).catch(() => null);
       if (!target) return interaction.followUp(`No user found matching ${user.id}`);
+
       const logs = getLogs()[target.user.id] || [];
-      console.log("Fetched logs for user:", logs);
       await sendModlogEmbed(interaction, target.user, logs, 0);
     } catch (error) {
       console.error("Error in interactionRun:", error);
@@ -83,15 +85,11 @@ module.exports = {
 
 function hasRequiredRole(member) {
   const requiredRoles = ["1226166868952350721", "1226167494226608198"];
-  const hasRole = requiredRoles.some(role => member.roles.cache.has(role));
-  console.log("Role check for member:", member.user.tag, "Result:", hasRole);
-  return hasRole;
+  return requiredRoles.some(role => member.roles.cache.has(role));
 }
 
 async function sendModlogEmbed(context, user, logs, pageIndex) {
   try {
-    console.log("sendModlogEmbed invoked for user:", user.tag);
-
     if (logs.length === 0) {
       return context.reply(`No logs found for ${user.tag}`);
     }
@@ -109,14 +107,13 @@ async function sendModlogEmbed(context, user, logs, pageIndex) {
     const end = start + itemsPerPage;
     const pageItems = logs.slice(start, end);
 
-    console.log("Page items for embed:", pageItems);
-
     pageItems.forEach(log => {
       embed.addFields(
         { name: "Action", value: log.type, inline: true },
         { name: "Reason", value: log.reason, inline: true },
         { name: "Date", value: new Date(log.date).toLocaleString(), inline: true },
-        { name: "Issuer", value: log.issuer, inline: true }
+        { name: "Issuer", value: log.issuer, inline: true },
+        log.duration ? { name: "Duration", value: log.duration, inline: true } : {}
       );
     });
 
@@ -177,6 +174,7 @@ async function sendModlogEmbed(context, user, logs, pageIndex) {
     });
   } catch (error) {
     console.error("Error in sendModlogEmbed:", error);
+    console.log("Logs causing error:", logs);
     context.reply("An error occurred while generating the modlog embed.");
   }
 }
