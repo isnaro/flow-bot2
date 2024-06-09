@@ -32,14 +32,6 @@ function clearLogs(userId) {
   }
 }
 
-function deleteLogAction(userId, actionIndex) {
-  const logs = getLogs();
-  if (logs[userId] && logs[userId][actionIndex]) {
-    logs[userId].splice(actionIndex, 1);
-    saveLogs(logs);
-  }
-}
-
 module.exports = {
   name: "warn",
   description: "Warns the specified member",
@@ -140,7 +132,7 @@ async function warn(issuer, target, reason) {
   }
 }
 
-// New command for clearing warnings
+// Command for clearing warnings
 module.exports.clearWarns = {
   name: "warns",
   description: "Clear warnings for a user",
@@ -164,4 +156,3 @@ module.exports.clearWarns = {
     await message.safeReply(`${target.username}'s warnings have been cleared.`);
   },
 };
-

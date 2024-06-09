@@ -25,6 +25,22 @@ function logAction(userId, action) {
   saveLogs(logs);
 }
 
+function clearLogs(userId) {
+  const logs = getLogs();
+  if (logs[userId]) {
+    delete logs[userId];
+    saveLogs(logs);
+  }
+}
+
+function deleteLogAction(userId, actionIndex) {
+  const logs = getLogs();
+  if (logs[userId] && logs[userId][actionIndex]) {
+    logs[userId].splice(actionIndex, 1);
+    saveLogs(logs);
+  }
+}
+
 // Main command module
 module.exports = {
   name: "modlogs",
