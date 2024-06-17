@@ -80,7 +80,10 @@ module.exports = {
       return message.safeReply("There are no members to move in the specified source channel.");
     }
 
-    // Remove bot role hierarchy check
+    // Check if the moderator has permissions in the destination channel
+    if (!destinationChannel.permissionsFor(message.member).has("MoveMembers")) {
+      return message.safeReply("You do not have the required permissions in the destination channel.");
+    }
 
     const response = await moveAll(message, membersToMove, reason, destinationChannel);
     await message.safeReply(response);
