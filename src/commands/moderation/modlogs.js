@@ -1,8 +1,13 @@
+<<<<<<< HEAD
 const { ApplicationCommandOptionType, EmbedBuilder } = require("discord.js");
+=======
+// src/commands/modlogs.js
+const { ApplicationCommandOptionType, MessageEmbed, MessageActionRow, MessageButton } = require("discord.js");
+>>>>>>> parent of 7aba5c8 (Update modlogs.js)
 const fs = require('fs');
 const path = require('path');
 
-const logsFilePath = path.join(__dirname, 'modlogs.json');
+const logsFilePath = path.join(__dirname, '../modlogs.json');
 
 // Utility functions for logging
 function getLogs() {
@@ -13,11 +18,12 @@ function getLogs() {
 }
 
 /**
- * @type {import("@structures/Command")}
+ * @type {import('@structures/Command')}
  */
 module.exports = {
   name: "modlogs",
   description: "Displays moderation logs for a user",
+<<<<<<< HEAD
   category: "MODERATION",
   command: {
     enabled: true,
@@ -68,8 +74,35 @@ module.exports = {
     } catch (error) {
       console.error("Error in messageRun:", error);
       message.safeReply("An error occurred while running this command.");
+=======
+  options: [
+    {
+      name: "user",
+      description: "The target member",
+      type: ApplicationCommandOptionType.User,
+      required: true,
+    },
+  ],
+  
+  async execute(interaction) {
+    if (!hasRequiredRole(interaction.member)) {
+      return interaction.reply({ content: "You do not have the required role to use this command.", ephemeral: true });
+    }
+
+    const user = interaction.options.getUser("user");
+    const target = await interaction.guild.members.fetch(user.id);
+    const logs = getLogs()[target.user.id] || [];
+
+    await sendModlogEmbed(interaction, target.user, logs, 0);
+  },
+
+  async messageRun(message, args) {
+    if (!hasRequiredRole(message.member)) {
+      return message.safeReply("You do not have the required role to use this command.");
+>>>>>>> parent of 7aba5c8 (Update modlogs.js)
     }
   },
+<<<<<<< HEAD
 
   async interactionRun(interaction) {
     try {
@@ -100,6 +133,8 @@ module.exports = {
       interaction.followUp("An error occurred while running this command.");
     }
   },
+=======
+>>>>>>> parent of 7aba5c8 (Update modlogs.js)
 };
 
 function hasRequiredRole(member) {
@@ -114,9 +149,73 @@ async function sendModlogEmbed(context, user, logs, pageIndex) {
     console.log("sendModlogEmbed - logs:", logs);
     console.log("sendModlogEmbed - pageIndex:", pageIndex);
 
+<<<<<<< HEAD
     if (logs.length === 0) {
       console.log("sendModlogEmbed - no logs found for user:", user.tag);
       return context.reply(`No logs found for ${user.tag}`);
+=======
+  // Reverse the logs array to display the newest actions first
+  const reversedLogs = logs.slice().reverse();
+
+  const itemsPerPage = 5;
+  const totalPages = Math.ceil(reversedLogs.length / itemsPerPage);
+
+  const embed = new MessageEmbed()
+    .setAuthor(`Moderation Logs for ${user.tag}`, user.displayAvatarURL())
+    .setColor("#FF0000")
+    .setThumbnail(user.displayAvatarURL())
+    .setFooter(`Page ${pageIndex + 1} of ${totalPages}`);
+
+  const start = pageIndex * itemsPerPage;
+  const end = start + itemsPerPage;
+  const pageItems = reversedLogs.slice(start, end);
+
+  pageItems.forEach((log, index) => {
+    const actionNumber = start + index + 1;
+    embed.addFields(
+      { name: `Action #${actionNumber}`, value: log.type, inline: true },
+      { name: "Reason", value: log.reason, inline: true },
+      { name: "Date", value: new Date(log.date).toLocaleString(), inline: true },
+      { name: "Responsible Moderator", value: `${log.issuer} (${log.issuerId})`, inline: false }
+    );
+    embed.addFields({ name: '\u200B', value: '\u200B' });
+  });
+
+  const row = new MessageActionRow()
+    .addComponents(
+      new MessageButton()
+        .setCustomId('prev')
+        .setLabel('Previous')
+        .setStyle('PRIMARY')
+        .setDisabled(pageIndex === 0),
+      new MessageButton()
+        .setCustomId('next')
+        .setLabel('Next')
+        .setStyle('PRIMARY')
+        .setDisabled(pageIndex === totalPages - 1)
+    );
+
+  const messageOptions = { embeds: [embed], components: [row] };
+
+  if (context.deferred || context.replied) {
+    await context.editReply(messageOptions);
+  } else {
+    await context.reply(messageOptions);
+  }
+
+  const filter = i => i.user.id === context.user.id && (i.customId === 'prev' || i.customId === 'next');
+  const collector = context.channel.createMessageComponentCollector({
+    filter,
+    componentType: 'BUTTON',
+    time: 60000,
+  });
+
+  collector.on('collect', async i => {
+    if (i.customId === 'prev' && pageIndex > 0) {
+      pageIndex--;
+    } else if (i.customId === 'next' && pageIndex < totalPages - 1) {
+      pageIndex++;
+>>>>>>> parent of 7aba5c8 (Update modlogs.js)
     }
 
     const itemsPerPage = 5;
