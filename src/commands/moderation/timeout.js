@@ -1,30 +1,6 @@
 const { timeoutTarget } = require("@helpers/ModUtils");
 const { ApplicationCommandOptionType, EmbedBuilder } = require("discord.js");
 const ems = require("enhanced-ms");
-const fs = require('fs');
-const path = require('path');
-
-const logsFilePath = path.join(__dirname, 'modlogs.json');
-
-function getLogs() {
-  if (!fs.existsSync(logsFilePath)) {
-    fs.writeFileSync(logsFilePath, JSON.stringify({}));
-  }
-  return JSON.parse(fs.readFileSync(logsFilePath));
-}
-
-function saveLogs(logs) {
-  fs.writeFileSync(logsFilePath, JSON.stringify(logs, null, 2));
-}
-
-function logAction(userId, action) {
-  const logs = getLogs();
-  if (!logs[userId]) {
-    logs[userId] = [];
-  }
-  logs[userId].push(action);
-  saveLogs(logs);
-}
 
 /**
  * @type {import("@structures/Command")}
@@ -116,6 +92,7 @@ async function timeout(issuer, target, ms, reason) {
 
   const response = await timeoutTarget(issuer, target, ms, reason);
   if (typeof response === "boolean") {
+<<<<<<< HEAD
     // Log the timeout action
     const action = {
       type: 'timeout',
@@ -127,6 +104,8 @@ async function timeout(issuer, target, ms, reason) {
     console.log("Logging action:", action);
     logAction(target.id, action);
 
+=======
+>>>>>>> parent of ee9f4be (.)
     return `${target.user.username} is timed out until ${endTimeString}!`;
   }
 

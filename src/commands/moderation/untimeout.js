@@ -1,29 +1,5 @@
 const { unTimeoutTarget } = require("@helpers/ModUtils");
 const { ApplicationCommandOptionType } = require("discord.js");
-const fs = require('fs');
-const path = require('path');
-
-const logsFilePath = path.join(__dirname, 'modlogs.json');
-
-function getLogs() {
-  if (!fs.existsSync(logsFilePath)) {
-    fs.writeFileSync(logsFilePath, JSON.stringify({}));
-  }
-  return JSON.parse(fs.readFileSync(logsFilePath));
-}
-
-function saveLogs(logs) {
-  fs.writeFileSync(logsFilePath, JSON.stringify(logs, null, 2));
-}
-
-function logAction(userId, action) {
-  const logs = getLogs();
-  if (!logs[userId]) {
-    logs[userId] = [];
-  }
-  logs[userId].push(action);
-  saveLogs(logs);
-}
 
 /**
  * @type {import("@structures/Command")}
@@ -78,17 +54,7 @@ module.exports = {
 
 async function untimeout(issuer, target, reason) {
   const response = await unTimeoutTarget(issuer, target, reason);
-  if (typeof response === "boolean") {
-    // Log the untimeout action
-    logAction(target.id, {
-      type: 'untimeout',
-      reason,
-      date: new Date().toISOString(),
-      issuer: issuer.user.tag,
-    });
-
-    return `Timeout of ${target.user.username} is removed!`;
-  }
+  if (typeof response === "boolean") return `Timeout of ${target.user.username} is removed!`;
   if (response === "BOT_PERM") return `I do not have permission to remove timeout of ${target.user.username}`;
   else if (response === "MEMBER_PERM") return `You do not have permission to remove timeout of ${target.user.username}`;
   else if (response === "NO_TIMEOUT") return `${target.user.username} is not timed out!`;

@@ -1,29 +1,5 @@
 const { ApplicationCommandOptionType, EmbedBuilder } = require("discord.js");
 const ms = require("ms");
-const fs = require('fs');
-const path = require('path');
-
-const logsFilePath = path.join(__dirname, 'modlogs.json');
-
-function getLogs() {
-  if (!fs.existsSync(logsFilePath)) {
-    fs.writeFileSync(logsFilePath, JSON.stringify({}));
-  }
-  return JSON.parse(fs.readFileSync(logsFilePath));
-}
-
-function saveLogs(logs) {
-  fs.writeFileSync(logsFilePath, JSON.stringify(logs, null, 2));
-}
-
-function logAction(userId, action) {
-  const logs = getLogs();
-  if (!logs[userId]) {
-    logs[userId] = [];
-  }
-  logs[userId].push(action);
-  saveLogs(logs);
-}
 
 module.exports = {
   name: "ban",
@@ -126,15 +102,6 @@ async function ban(issuer, target, reason, duration) {
       setTimeout(async () => {
         await issuer.guild.members.ban(target, { reason });
 
-        // Log the ban action
-        logAction(target.id, {
-          type: 'ban',
-          reason,
-          duration: ms(duration, { long: true }),
-          date: new Date().toISOString(),
-          issuer: issuer.user.tag,
-        });
-
         // Send embed to log channel
         if (logChannel) {
           const embed = new EmbedBuilder()
@@ -156,14 +123,6 @@ async function ban(issuer, target, reason, duration) {
         setTimeout(async () => {
           try {
             await issuer.guild.members.unban(target.id, "Ban duration expired");
-
-            // Log the unban action
-            logAction(target.id, {
-              type: 'unban',
-              reason: "Ban duration expired",
-              date: new Date().toISOString(),
-              issuer: "System",
-            });
 
             // Send unban embed to log channel
             if (logChannel) {
@@ -197,15 +156,6 @@ async function ban(issuer, target, reason, duration) {
 
       setTimeout(async () => {
         await issuer.guild.members.ban(target, { reason });
-
-        // Log the ban action
-        logAction(target.id, {
-          type: 'ban',
-          reason,
-          duration: "Permanent",
-          date: new Date().toISOString(),
-          issuer: issuer.user.tag,
-        });
 
         // Send embed to log channel
         if (logChannel) {

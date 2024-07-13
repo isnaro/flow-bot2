@@ -5,31 +5,10 @@ const {
   ApplicationCommandOptionType,
   ComponentType,
 } = require("discord.js");
-const fs = require('fs');
-const path = require('path');
 
-const logsFilePath = path.join(__dirname, 'modlogs.json');
-
-function getLogs() {
-  if (!fs.existsSync(logsFilePath)) {
-    fs.writeFileSync(logsFilePath, JSON.stringify({}));
-  }
-  return JSON.parse(fs.readFileSync(logsFilePath));
-}
-
-function saveLogs(logs) {
-  fs.writeFileSync(logsFilePath, JSON.stringify(logs, null, 2));
-}
-
-function logAction(userId, action) {
-  const logs = getLogs();
-  if (!logs[userId]) {
-    logs[userId] = [];
-  }
-  logs[userId].push(action);
-  saveLogs(logs);
-}
-
+/**
+ * @type {import("@structures/Command")}
+ */
 module.exports = {
   name: "unban",
   description: "unbans the specified member",
@@ -135,19 +114,8 @@ async function waitForBan(issuer, reason, sent) {
     const user = await issuer.client.users.fetch(userId, { cache: true });
 
     const status = await unBanTarget(issuer, user, reason);
-    if (typeof status === "boolean") {
-      // Log the unban action
-      logAction(user.id, {
-        type: 'unban',
-        reason: reason || "No reason provided",
-        date: new Date().toISOString(),
-        issuer: issuer.user.tag,
-      });
-
-      return sent.edit({ content: `${user.username} is un-banned!`, components: [] });
-    } else {
-      return sent.edit({ content: `Failed to unban ${user.username}`, components: [] });
-    }
+    if (typeof status === "boolean") return sent.edit({ content: `${user.username} is un-banned!`, components: [] });
+    else return sent.edit({ content: `Failed to unban ${user.username}`, components: [] });
   });
 
   // collect user and unban

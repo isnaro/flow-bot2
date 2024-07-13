@@ -1,28 +1,4 @@
 const { ChannelType, EmbedBuilder } = require("discord.js");
-const fs = require('fs');
-const path = require('path');
-
-const logsFilePath = path.join(__dirname, 'modlogs.json');
-
-function getLogs() {
-  if (!fs.existsSync(logsFilePath)) {
-    fs.writeFileSync(logsFilePath, JSON.stringify({}));
-  }
-  return JSON.parse(fs.readFileSync(logsFilePath));
-}
-
-function saveLogs(logs) {
-  fs.writeFileSync(logsFilePath, JSON.stringify(logs, null, 2));
-}
-
-function logAction(userId, action) {
-  const logs = getLogs();
-  if (!logs[userId]) {
-    logs[userId] = [];
-  }
-  logs[userId].push(action);
-  saveLogs(logs);
-}
 
 module.exports = {
   name: "vunmute",
@@ -96,14 +72,6 @@ async function vunmute(message, target, reason) {
     if (target.voice.channel) {
       await target.voice.setMute(false, reason);
     }
-
-    // Log the unmute action
-    logAction(target.id, {
-      type: 'vunmute',
-      reason,
-      date: new Date().toISOString(),
-      issuer: message.author.tag,
-    });
 
     // Create and send the embed
     const embed = new EmbedBuilder()
