@@ -92,7 +92,6 @@ async function timeout(issuer, target, ms, reason) {
 
   const response = await timeoutTarget(issuer, target, ms, reason);
   if (typeof response === "boolean") {
-<<<<<<< HEAD
     // Log the timeout action
     const action = {
       type: 'timeout',
@@ -104,8 +103,6 @@ async function timeout(issuer, target, ms, reason) {
     console.log("Logging action:", action);
     logAction(target.id, action);
 
-=======
->>>>>>> parent of ee9f4be (.)
     return `${target.user.username} is timed out until ${endTimeString}!`;
   }
 

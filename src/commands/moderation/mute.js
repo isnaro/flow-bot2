@@ -176,8 +176,7 @@ async function mute(issuer, target, reason, duration) {
       }
     }, duration);
 
-<<<<<<< HEAD
-=======
+
     // Create and send the embed
     const logChannel = issuer.guild.channels.cache.get(logChannelId);
     if (logChannel) {
@@ -200,7 +199,6 @@ async function mute(issuer, target, reason, duration) {
       await logChannel.send({ embeds: [embed] });
     }
 
->>>>>>> parent of ee9f4be (.)
     return `${target.username} is muted for ${ms(duration, { long: true })}!`;
   } catch (error) {
     console.error("Error muting user:", error);

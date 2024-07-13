@@ -123,5 +123,3 @@ async function warnTargetWithAutoActions(issuer, target, reason) {
     return warnResponse;
   }
 }
-
-
