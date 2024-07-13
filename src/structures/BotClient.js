@@ -1,4 +1,15 @@
+<<<<<<< HEAD
 const { Client, Collection, GatewayIntentBits, Partials, WebhookClient, ApplicationCommandType } = require("discord.js");
+=======
+const {
+  Client,
+  Collection,
+  GatewayIntentBits,
+  Partials,
+  WebhookClient,
+  ApplicationCommandType,
+} = require("discord.js");
+>>>>>>> parent of b31f2ca (.)
 const path = require("path");
 const { table } = require("table");
 const Logger = require("../helpers/Logger");

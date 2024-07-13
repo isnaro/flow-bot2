@@ -9,7 +9,11 @@ require("@helpers/extenders/GuildChannel");
 const { checkForUpdates } = require("@helpers/BotUtils");
 const { initializeMongoose } = require("@src/database/mongoose");
 const { BotClient } = require("@src/structures");
+<<<<<<< HEAD
 const { validateConfiguration } = require("@helpers/Validator"); // Ensure this import exists
+=======
+const { validateConfiguration } = require("@helpers/Validator");
+>>>>>>> parent of b31f2ca (.)
 const keepAlive = require('./keep_alive.js');
 
 validateConfiguration();
