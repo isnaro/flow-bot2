@@ -1,13 +1,11 @@
-const http = require('http');
+const express = require('express');
+const app = express();
+const port = process.env.PORT || 3000;
 
-function startKeepAlive() {
-  http.createServer(function (req, res) {
-    res.write("I'm alive");
-    res.end();
-  }).listen(8080);
+app.get('/', (req, res) => {
+  res.send('Bot is running!');
+});
 
-  console.log("Keep-alive server started on port 8080");
-}
-
-// Export the startKeepAlive function if needed by other parts of your application
-module.exports.startKeepAlive = startKeepAlive;
+app.listen(port, () => {
+  console.log(`Server is listening on port ${port}`);
+});
