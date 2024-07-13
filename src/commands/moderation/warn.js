@@ -122,8 +122,6 @@ async function warnTargetWithAutoActions(issuer, target, reason) {
   } else {
     return warnResponse;
   }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> parent of ee9f4be (.)
+
+
