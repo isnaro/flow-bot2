@@ -122,14 +122,14 @@ async function mute(issuer, target, reason, duration) {
     await member.roles.add(mutedRole, reason);
 
     // Log the mute action
-    logAction(target.id, {
-      type: 'mute',
-      reason,
-      duration: ms(duration, { long: true }),
-      date: new Date().toISOString(),
-      issuer: issuer.user.tag,
-      issuerId: issuer.user.id,
-    });
+    // logAction(target.id, {
+    //   type: 'mute',
+    //   reason,
+    //   duration: ms(duration, { long: true }),
+    //   date: new Date().toISOString(),
+    //   issuer: issuer.user.tag,
+    //   issuerId: issuer.user.id,
+    // });
 
     // Create and send the embed
     const embed = new EmbedBuilder()
@@ -175,29 +175,6 @@ async function mute(issuer, target, reason, duration) {
         console.error(`Failed to unmute ${target.username} after temporary mute:`, error);
       }
     }, duration);
-
-
-    // Create and send the embed
-    const logChannel = issuer.guild.channels.cache.get(logChannelId);
-    if (logChannel) {
-      const embed = new EmbedBuilder()
-        .setAuthor({ name: `Moderation - Mute`, iconURL: issuer.user.displayAvatarURL() })
-        .setColor("#FF0000")
-        .setThumbnail(target.displayAvatarURL())
-        .addFields(
-          { name: "Member", value: `${target.tag} [${target.id}]`, inline: false },
-          { name: "Reason", value: reason || "No reason provided", inline: false },
-          { name: "Duration", value: ms(duration, { long: true }), inline: true },
-          { name: "Expires", value: `<t:${Math.round((Date.now() + duration) / 1000)}:R>`, inline: true }
-        )
-        .setFooter({
-          text: `Muted by ${issuer.user.tag} [${issuer.user.id}]`,
-          iconURL: issuer.user.displayAvatarURL(),
-        })
-        .setTimestamp();
-
-      await logChannel.send({ embeds: [embed] });
-    }
 
     return `${target.username} is muted for ${ms(duration, { long: true })}!`;
   } catch (error) {
