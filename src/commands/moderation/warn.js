@@ -1,13 +1,14 @@
-const { warnTarget } = require("@helpers/ModUtils");
-const { ApplicationCommandOptionType, EmbedBuilder } = require("discord.js");
+const { warnTarget, timeoutTarget, kickTarget } = require("@helpers/ModUtils");
+const { ApplicationCommandOptionType } = require("discord.js");
 
 /**
  * @type {import("@structures/Command")}
  */
 module.exports = {
   name: "warn",
-  description: "Warns the specified member",
+  description: "warns the specified member",
   category: "MODERATION",
+  userPermissions: ["ViewAuditLog"], // Changed permission requirement
   command: {
     enabled: true,
     usage: "<ID|@member> [reason]",
@@ -18,13 +19,13 @@ module.exports = {
     options: [
       {
         name: "user",
-        description: "The target member",
+        description: "the target member",
         type: ApplicationCommandOptionType.User,
         required: true,
       },
       {
         name: "reason",
-        description: "Reason for warn",
+        description: "reason for warn",
         type: ApplicationCommandOptionType.String,
         required: false,
       },
@@ -32,28 +33,16 @@ module.exports = {
   },
 
   async messageRun(message, args) {
-    // Check for the specific role
-    const requiredRoleId = "1226167494226608198";
-    if (!message.member.roles.cache.has(requiredRoleId)) {
-      return message.safeReply("You do not have the required role to use this command.");
-    }
-
     const target = await message.guild.resolveMember(args[0], true);
     if (!target) return message.safeReply(`No user found matching ${args[0]}`);
-    const reason = message.content.split(args[0])[1].trim();
+    const reason = args.slice(1).join(" ") || "No reason provided";
     const response = await warn(message.member, target, reason);
     await message.safeReply(response);
   },
 
   async interactionRun(interaction) {
-    // Check for the specific role
-    const requiredRoleId = "1226167494226608198";
-    if (!interaction.member.roles.cache.has(requiredRoleId)) {
-      return interaction.followUp("You do not have the required role to use this command.");
-    }
-
     const user = interaction.options.getUser("user");
-    const reason = interaction.options.getString("reason");
+    const reason = interaction.options.getString("reason") || "No reason provided";
     const target = await interaction.guild.members.fetch(user.id);
 
     const response = await warn(interaction.member, target, reason);
@@ -62,21 +51,75 @@ module.exports = {
 };
 
 async function warn(issuer, target, reason) {
-  const dmMessage = `### ⚠️ You have been warned in **${issuer.guild.name}** for the following reason: __***${reason || "No reason provided"}***__ ###
-
-Please adhere to the server rules to avoid further actions.`;
-
   try {
-    await target.send(dmMessage);
+    const response = await warnTarget(issuer, target, reason);
+    if (typeof response === "boolean") {
+      try {
+        await target.send(
+          `## ⚠️⚠️ You have been warned in FLOW for: **${reason}** ##\n\n`
+          + `### Please follow <#1200477076113850468> to avoid further actions. If you believe the warn was unfair, create a ticket through <#1200479692927549640> or from [FLOW Appeal](https://discord.gg/kJFuMk6ZFS)`
+        );
+      } catch (err) {
+        console.error(`Failed to send DM to ${target.user.username}:`, err);
+      }
+      return `${target.user.username} has been warned!`;
+    }
+    switch (response) {
+      case "BOT_PERM":
+        return `I do not have permission to warn ${target.user.username}`;
+      case "MEMBER_PERM":
+        return `You do not have permission to warn ${target.user.username}`;
+      default:
+        return `Failed to warn ${target.user.username}`;
+    }
   } catch (error) {
-    console.error(`Failed to send DM to ${target.user.username}:`, error);
+    console.error("Error warning user:", error);
+    return "Failed to warn the user. Please try again later.";
   }
+}
 
-  await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay
+// Automate Actions After Reaching Certain Number of Warnings
+const WARN_THRESHOLD_1 = 3;
+const WARN_THRESHOLD_2 = 4;
 
-  const response = await warnTarget(issuer, target, reason);
-  if (typeof response === "boolean") return `${target.user.username} is warned!`;
-  if (response === "BOT_PERM") return `I do not have permission to warn ${target.user.username}`;
-  else if (response === "MEMBER_PERM") return `You do not have permission to warn ${target.user.username}`;
-  else return `Failed to warn ${target.user.username}`;
+async function warnTargetWithAutoActions(issuer, target, reason) {
+  const warnResponse = await warnTarget(issuer, target, reason);
+
+  if (typeof warnResponse === "boolean") {
+    const memberDb = await getMember(target.guild.id, target.id);
+    const warnings = memberDb.warnings + 1;
+
+    // Apply timeout after 3rd warning
+    if (warnings === WARN_THRESHOLD_1) {
+      const timeoutDuration = 72 * 60 * 60 * 1000; // 72 hours in milliseconds
+      await timeoutTarget(issuer, target, timeoutDuration, `Auto Timeout after ${WARN_THRESHOLD_1} warnings`);
+
+      // Send DM after timeout
+      setTimeout(async () => {
+        try {
+          await target.send(
+            `## ⌛⌛ Your timeout in FLOW has ended ##
+
+### You are now able to rejoin the server and participate again. ###`
+          );
+        } catch (err) {
+          console.error(`Failed to send DM to ${target.user.username}:`, err);
+        }
+      }, timeoutDuration);
+    }
+
+    // Kick member after 4th warning
+    if (warnings === WARN_THRESHOLD_2) {
+      await kickTarget(issuer, target, "Auto Kick after reaching 4 warnings");
+      return true;
+    }
+
+    // Update warnings count
+    memberDb.warnings = warnings;
+    await memberDb.save();
+
+    return true;
+  } else {
+    return warnResponse;
+  }
 }
