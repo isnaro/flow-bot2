@@ -104,7 +104,7 @@ module.exports = {
 
   PRESENCE: {
     ENABLED: true, // Whether or not the bot should update its status
-    STATUS: "dnd", // The bot's status [online, idle, dnd, invisible]
+    STATUS: "online", // The bot's status [online, idle, dnd, invisible]
     TYPE: "COMPETING", // Status type for the bot [PLAYING | LISTENING | WATCHING | COMPETING]
     MESSAGE: "discord.gg/flw", // Your bot status message
   },
