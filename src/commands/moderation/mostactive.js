@@ -66,7 +66,7 @@ async function giveMostActiveRole(issuer, target) {
       .setFooter({ text: `Awarded by ${issuer.user.tag}`, iconURL: issuer.user.displayAvatarURL() })
       .setTimestamp();
 
-    const logChannelId = "1225439125776367697"; // Log channel ID
+    const logChannelId = "1263085495840280671"; // Log channel ID
     const logChannel = issuer.guild.channels.cache.get(logChannelId);
     if (logChannel) {
       await logChannel.send({ embeds: [embed] });
