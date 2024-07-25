@@ -1,12 +1,12 @@
 const { Command } = require('@structures/Command');
-const { joinVoiceChannel, getVoiceConnection, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnectionStatus } = require('@discordjs/voice');
+const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnectionStatus, entersState } = require('@discordjs/voice');
 const { GatewayIntentBits } = require('discord.js');
 const { TextToSpeechClient } = require('@google-cloud/text-to-speech');
 const fs = require('fs');
 const util = require('util');
 
 // Google Cloud Text-to-Speech client setup
-const client = new TextToSpeechClient();
+const ttsClient = new TextToSpeechClient();
 const writeFile = util.promisify(fs.writeFile);
 
 module.exports = new Command({
@@ -40,6 +40,8 @@ async function stayInChannel(channel) {
             adapterCreator: channel.guild.voiceAdapterCreator,
         });
 
+        console.log(`Bot joined the voice channel: ${channel.name}`);
+
         const player = createAudioPlayer();
 
         connection.subscribe(player);
@@ -56,12 +58,14 @@ async function stayInChannel(channel) {
                     audioConfig: { audioEncoding: 'MP3' },
                 };
 
-                const [response] = await client.synthesizeSpeech(request);
+                const [response] = await ttsClient.synthesizeSpeech(request);
                 const audioPath = `./welcome_${username}.mp3`;
                 await writeFile(audioPath, response.audioContent, 'binary');
 
                 const resource = createAudioResource(audioPath);
                 player.play(resource);
+
+                console.log(`Greeted ${username} in the voice channel`);
             }
 
             // Unmute the bot if muted
