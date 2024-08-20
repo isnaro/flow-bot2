@@ -65,7 +65,7 @@ module.exports = {
     const embed = new EmbedBuilder()
       .setTitle("Role Update")
       .addFields(
-        { name: "User", value: `${targetMember.user.tag}`, inline: true },
+        { name: "User", value: `<@${targetMember.user.id}>`, inline: true },
         { name: "Role", value: `<@&${targetRole.id}>`, inline: true }
       )
       .setThumbnail(targetMember.user.displayAvatarURL({ dynamic: true }))
@@ -173,7 +173,7 @@ async function sendRemovalEmbed(message, targetMember, targetRole) {
     .setTitle("Role Removed")
     .setDescription(`A role has been removed from a user.`)
     .addFields(
-      { name: "User", value: targetMember.user.tag, inline: true },
+      { name: "User", value: `<@${targetMember.user.id}>`, inline: true },
       { name: "Role", value: targetRole.name, inline: true },
       { name: "Moderator", value: message.author.tag, inline: true }
     )
