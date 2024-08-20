@@ -24,7 +24,7 @@ module.exports = {
       "1200776755066191882", "1200776664133677159", "1230662535233929296",
       "1230662625956859946", "1200592956831305799", "1201137840134824027",
       "1200485716220723220", "1201137925216272424", "1201137119335292948", "1235957943531344064",
-      "1201137753295962112", "1200592759438987374", "1201138020569600000", "1228818077706358904","1200485716220723220","1231018578174545970"
+      "1201137753295962112", "1200592759438987374", "1201138020569600000", "1228818077706358904", "1200485716220723220", "1231018578174545970"
     ];
 
     const allowedToAddRoles = [
@@ -60,21 +60,32 @@ module.exports = {
     const targetRole = findClosestRole(message.guild, roleNameOrId, allowedRoles);
     if (!targetRole) return message.safeReply(`No role found matching ${roleNameOrId}`);
 
+    const embed = new MessageEmbed()
+      .setTitle("Role Update")
+      .addField("User", `${targetMember.user.tag}`, true)
+      .addField("Role", `<@&${targetRole.id}>`, true)
+      .setThumbnail(targetMember.user.displayAvatarURL({ dynamic: true }))
+      .setTimestamp();
+
     if (canAddRoles || canRemoveRoles) {
       if (targetMember.roles.cache.has(targetRole.id)) {
         if (canRemoveRoles) {
           await targetMember.roles.remove(targetRole);
+          embed.setDescription(`Successfully removed the role from the user.`)
+            .setColor("#FF0000");
+          await message.channel.send({ embeds: [embed] });
           if (targetRole.id === "1200771376592736256") {
             sendRemovalEmbed(message, targetMember, targetRole);
           }
-          return message.safeReply(`Successfully removed ${targetRole.name} from ${targetMember.user.username}`);
         } else {
           return message.safeReply("You do not have permission to remove this role.");
         }
       } else {
         if (canAddRoles) {
           await targetMember.roles.add(targetRole);
-          return message.safeReply(`Successfully added ${targetRole.name} to ${targetMember.user.username}`);
+          embed.setDescription(`Successfully added the role to the user.`)
+            .setColor("#00FF00");
+          await message.channel.send({ embeds: [embed] });
         } else {
           return message.safeReply("You do not have permission to add this role.");
         }
