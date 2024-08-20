@@ -1,4 +1,4 @@
-const { MessageEmbed } = require("discord.js");
+const { EmbedBuilder } = require("discord.js");
 
 /**
  * @type {import("@structures/Command")}
@@ -20,6 +20,7 @@ module.exports = {
 
   async messageRun(message, args) {
     const allowedRoles = [
+      // List of allowed role IDs
       "1200591829754712145", "1200771376592736256",
       "1200776755066191882", "1200776664133677159", "1230662535233929296",
       "1230662625956859946", "1200592956831305799", "1201137840134824027",
@@ -28,6 +29,7 @@ module.exports = {
     ];
 
     const allowedToAddRoles = [
+      // List of allowed to add role IDs
       "1226167494226608198",
       "1200477300093878385",
       "1226166868952350721",
@@ -60,10 +62,12 @@ module.exports = {
     const targetRole = findClosestRole(message.guild, roleNameOrId, allowedRoles);
     if (!targetRole) return message.safeReply(`No role found matching ${roleNameOrId}`);
 
-    const embed = new MessageEmbed()
+    const embed = new EmbedBuilder()
       .setTitle("Role Update")
-      .addField("User", `${targetMember.user.tag}`, true)
-      .addField("Role", `<@&${targetRole.id}>`, true)
+      .addFields(
+        { name: "User", value: `${targetMember.user.tag}`, inline: true },
+        { name: "Role", value: `<@&${targetRole.id}>`, inline: true }
+      )
       .setThumbnail(targetMember.user.displayAvatarURL({ dynamic: true }))
       .setTimestamp();
 
@@ -165,12 +169,14 @@ async function sendRemovalEmbed(message, targetMember, targetRole) {
     return;
   }
 
-  const embed = new MessageEmbed()
+  const embed = new EmbedBuilder()
     .setTitle("Role Removed")
     .setDescription(`A role has been removed from a user.`)
-    .addField("User", targetMember.user.tag, true)
-    .addField("Role", targetRole.name, true)
-    .addField("Moderator", message.author.tag, true)
+    .addFields(
+      { name: "User", value: targetMember.user.tag, inline: true },
+      { name: "Role", value: targetRole.name, inline: true },
+      { name: "Moderator", value: message.author.tag, inline: true }
+    )
     .setThumbnail(targetMember.user.displayAvatarURL({ dynamic: true }))
     .setTimestamp()
     .setColor("#FF0000");
