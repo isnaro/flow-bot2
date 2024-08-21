@@ -75,7 +75,7 @@ module.exports = {
       const embed = new EmbedBuilder()
         .setTitle("🎉 Promotion!")
         .setDescription(`Congratulations <@${targetMember.id}> on your promotion!`)
-        .setColor("GREEN")
+        .setColor(0x00FF00) // Use a hexadecimal color value
         .setTimestamp();
 
       const staffChannel = message.guild.channels.cache.get(staffChannelId);
