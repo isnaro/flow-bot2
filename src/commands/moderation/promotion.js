@@ -71,24 +71,39 @@ module.exports = {
         await targetMember.roles.add(newRoleId);
       }
 
+      // Get the user's nickname or username if no nickname is set
+      const nickname = targetMember.nickname || targetMember.user.username;
+
       // Send a congratulatory message
       const embed = new EmbedBuilder()
         .setTitle("🎉 Promotion!")
-        .setDescription(`Congratulations <@${targetMember.id}> on your promotion!`)
+        .setDescription(`Congrats <@${targetMember.id}> on your promotion to <@&${newRoleId[0]}>! Keep up the great work, **${nickname}**!`)
         .setColor(0x00FF00) // Use a hexadecimal color value
         .setTimestamp();
 
       const staffChannel = message.guild.channels.cache.get(staffChannelId);
       const trialStaffChannel = message.guild.channels.cache.get(trialStaffChannelId);
 
+      const congratsMessage = `<@&${staffRoleId}> <@&${trialStaffRoleId}> Congrats <@${targetMember.id}> for their promotion to <@&${newRoleId[0]}>! Keep it up, **${nickname}**! 🎉`;
+
       if (staffChannel) {
-        await staffChannel.send({ content: `<@&${staffRoleId}> <@&${trialStaffRoleId}>`, embeds: [embed] });
+        await staffChannel.send({ content: congratsMessage, embeds: [embed] });
       }
       if (trialStaffChannel) {
-        await trialStaffChannel.send({ content: `<@&${staffRoleId}> <@&${trialStaffRoleId}>`, embeds: [embed] });
+        await trialStaffChannel.send({ content: congratsMessage, embeds: [embed] });
       }
 
-      message.safeReply(`Successfully promoted <@${targetMember.id}>!`);
+      const botReply = await message.safeReply(congratsMessage);
+
+      // Auto-react with specified emojis
+      const emojiIds = [
+        "1228953695891357727", // nb_white_hearts
+        "1231070540312219728", // nb_whitesparkles
+        "1275965432695623742", // FLOW_congrats
+      ];
+      for (const emojiId of emojiIds) {
+        await botReply.react(emojiId);
+      }
     } catch (error) {
       console.error(`Failed to promote user: ${error.message}`);
       message.safeReply("An error occurred while trying to promote the user.");
