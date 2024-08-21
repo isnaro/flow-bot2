@@ -7,7 +7,7 @@ module.exports = {
   name: "promote",
   description: "Promotes a user to the next role in the staff hierarchy",
   category: "MODERATION",
-  userPermissions: ["ManageRoles"],
+  userPermissions: ["Administrator"], // Requires the user to be an administrator
   botPermissions: ["ManageRoles"],
   command: {
     enabled: true,
@@ -19,6 +19,13 @@ module.exports = {
   },
 
   async messageRun(message, args) {
+    const allowedChannelId = "1275958005396934741";
+    
+    // Check if the command is being run in the allowed channel
+    if (message.channel.id !== allowedChannelId) {
+      return message.safeReply("This command can only be used in the designated channel.");
+    }
+
     const trialStaffRoleId = "1226166868952350721";
     const staffRoleId = "1226167494226608198";
     const assistantRoleId = "1240403515340492870";
