@@ -23,7 +23,7 @@ module.exports = {
     
     // Check if the command is being run in the allowed channel
     if (message.channel.id !== allowedChannelId) {
-      return message.safeReply("This command can only be used in the designated channel.");
+      return message.channel.send("This command can only be used in the designated channel.");
     }
 
     const trialStaffRoleId = "1226166868952350721";
@@ -39,7 +39,7 @@ module.exports = {
 
     const userIdOrMention = args[0];
     const targetMember = await resolveMember(message, userIdOrMention);
-    if (!targetMember) return message.safeReply(`No user found matching ${userIdOrMention}`);
+    if (!targetMember) return message.channel.send(`No user found matching ${userIdOrMention}`);
 
     let newRoleId;
     let removedRoleId;
@@ -60,7 +60,7 @@ module.exports = {
       newRoleId = [administratorRoleId];
       removedRoleId = globalManagerRoleId;
     } else {
-      return message.safeReply("The user does not have a role that can be promoted.");
+      return message.channel.send("The user does not have a role that can be promoted.");
     }
 
     try {
@@ -93,7 +93,7 @@ module.exports = {
         await trialStaffChannel.send({ content: congratsMessage, embeds: [embed] });
       }
 
-      const botReply = await message.safeReply(congratsMessage);
+      const botReply = await message.channel.send(congratsMessage);
 
       // Auto-react with specified emojis
       const emojiIds = [
@@ -106,7 +106,7 @@ module.exports = {
       }
     } catch (error) {
       console.error(`Failed to promote user: ${error.message}`);
-      message.safeReply("An error occurred while trying to promote the user.");
+      message.channel.send("An error occurred while trying to promote the user.");
     }
   }
 };
