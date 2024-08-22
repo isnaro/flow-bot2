@@ -34,9 +34,6 @@ module.exports = {
     const globalManagerRoleId = "1200477902387544185";
     const administratorRoleId = "1200477300093878385";
 
-    const staffChannelId = "staff-channel-id"; // Replace with your actual staff channel ID
-    const trialStaffChannelId = "trial-staff-channel-id"; // Replace with your actual trial staff channel ID
-
     const userIdOrMention = args[0];
     const targetMember = await resolveMember(message, userIdOrMention);
     if (!targetMember) return message.channel.send(`No user found matching ${userIdOrMention}`);
@@ -74,26 +71,14 @@ module.exports = {
       // Get the user's nickname or username if no nickname is set
       const nickname = targetMember.nickname || targetMember.user.username;
 
-      // Send a congratulatory message
-      const embed = new EmbedBuilder()
-        .setTitle("🎉 Promotion!")
-        .setDescription(`Congrats <@${targetMember.id}> on your promotion to <@&${newRoleId[0]}>! Keep up the great work, **${nickname}**!`)
-        .setColor(0x00FF00) // Use a hexadecimal color value
-        .setTimestamp();
-
-      const staffChannel = message.guild.channels.cache.get(staffChannelId);
-      const trialStaffChannel = message.guild.channels.cache.get(trialStaffChannelId);
-
+      // Construct the congratulatory message
       const congratsMessage = `<@&${staffRoleId}> <@&${trialStaffRoleId}> Congrats <@${targetMember.id}> for their promotion to <@&${newRoleId[0]}>! Keep it up, **${nickname}**! 🎉`;
 
-      if (staffChannel) {
-        await staffChannel.send({ content: congratsMessage, embeds: [embed] });
-      }
-      if (trialStaffChannel) {
-        await trialStaffChannel.send({ content: congratsMessage, embeds: [embed] });
-      }
-
-      const botReply = await message.channel.send(congratsMessage);
+      // Send the congratulatory message with proper role pings
+      const botReply = await message.channel.send({
+        content: congratsMessage,
+        allowedMentions: { roles: [staffRoleId, trialStaffRoleId] },
+      });
 
       // Auto-react with specified emojis
       const emojiIds = [
