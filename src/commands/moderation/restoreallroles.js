@@ -25,48 +25,60 @@ module.exports = {
   },
 
   async messageRun(message, args) {
-    const targetId = args[0].replace(/[<@!>]/g, ''); // Remove mention syntax
-    const target = await message.guild.members.fetch(targetId).catch(() => null);
-    if (!target) return message.safeReply(`No user found matching ${args[0]}`);
-
-    // Fetch stored roles from MongoDB
-    const storedRoles = await UserRoles.findOne({ userId: target.id, guildId: message.guild.id });
-    if (!storedRoles || storedRoles.roles.length === 0) {
-      return message.safeReply("No roles found to restore for this user.");
-    }
-
-    // Restore roles
+    console.log("restoreallroles command invoked with args:", args);
     try {
+      const targetId = args[0].replace(/[<@!>]/g, ''); // Remove mention syntax
+      const target = await message.guild.members.fetch(targetId).catch(() => null);
+      if (!target) {
+        console.log(`No user found matching ${args[0]}`);
+        return message.channel.send(`No user found matching ${args[0]}`);
+      }
+
+      // Fetch stored roles from MongoDB
+      const storedRoles = await UserRoles.findOne({ userId: target.id, guildId: message.guild.id });
+      if (!storedRoles || storedRoles.roles.length === 0) {
+        console.log("No roles found to restore for this user.");
+        return message.channel.send("No roles found to restore for this user.");
+      }
+
+      // Restore roles
       await target.roles.add(storedRoles.roles);
-      // Remove stored roles from the database after restoring
       await UserRoles.deleteOne({ userId: target.id, guildId: message.guild.id });
-      message.safeReply(`Restored roles to ${target.user.username}.`);
+      console.log(`Roles restored to ${target.user.username}`);
+      message.channel.send(`Restored roles to ${target.user.username}.`);
+      
     } catch (error) {
-      console.error("Failed to restore roles:", error);
-      message.safeReply("Failed to restore roles. Ensure the bot has the appropriate permissions.");
+      console.error("Error in restoreallroles command:", error);
+      message.channel.send("An error occurred while trying to restore roles.");
     }
   },
 
   async interactionRun(interaction) {
-    const target = interaction.options.getUser("user");
-    const member = await interaction.guild.members.fetch(target.id).catch(() => null);
-    if (!member) return interaction.followUp(`No user found matching ${target.id}`);
-
-    // Fetch stored roles from MongoDB
-    const storedRoles = await UserRoles.findOne({ userId: member.id, guildId: interaction.guild.id });
-    if (!storedRoles || storedRoles.roles.length === 0) {
-      return interaction.followUp("No roles found to restore for this user.");
-    }
-
-    // Restore roles
+    console.log("restoreallroles slash command invoked");
     try {
+      const target = interaction.options.getUser("user");
+      const member = await interaction.guild.members.fetch(target.id).catch(() => null);
+      if (!member) {
+        console.log(`No user found matching ${target.id}`);
+        return interaction.followUp(`No user found matching ${target.id}`);
+      }
+
+      // Fetch stored roles from MongoDB
+      const storedRoles = await UserRoles.findOne({ userId: member.id, guildId: interaction.guild.id });
+      if (!storedRoles || storedRoles.roles.length === 0) {
+        console.log("No roles found to restore for this user.");
+        return interaction.followUp("No roles found to restore for this user.");
+      }
+
+      // Restore roles
       await member.roles.add(storedRoles.roles);
-      // Remove stored roles from the database after restoring
       await UserRoles.deleteOne({ userId: member.id, guildId: interaction.guild.id });
+      console.log(`Roles restored to ${member.user.username}`);
       interaction.followUp(`Restored roles to ${member.user.username}.`);
+      
     } catch (error) {
-      console.error("Failed to restore roles:", error);
-      interaction.followUp("Failed to restore roles. Ensure the bot has the appropriate permissions.");
+      console.error("Error in restoreallroles command:", error);
+      interaction.followUp("An error occurred while trying to restore roles.");
     }
   },
 };
