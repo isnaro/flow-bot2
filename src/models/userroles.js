@@ -1,10 +1,3 @@
-const mongoose = require('mongoose');
-
-// Define the schema for storing user roles
-const userRolesSchema = new mongoose.Schema({
-  userId: String,
-  guildId: String,
-  roles: [String],
-});
-
-module.exports = mongoose.model('UserRoles', userRolesSchema);
+if (!message.member.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
+    return message.channel.send("You do not have permission to use this command.");
+}
