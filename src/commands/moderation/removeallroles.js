@@ -1,9 +1,8 @@
 const { PermissionsBitField } = require("discord.js");
-const UserRoles = require("../../models/userRoles");
 
 module.exports = {
   name: "removeallroles",
-  description: "Removes all roles from a user and stores them for later restoration.",
+  description: "Removes all roles from a specified user.",
   category: "MODERATION",
   command: {
     enabled: true,
@@ -15,32 +14,26 @@ module.exports = {
   },
 
   async messageRun(message, args) {
-    // Check if the user has permission to manage roles
+    // Check if the user running the command has ManageRoles permission
     if (!message.member.permissions.has(PermissionsBitField.Flags.ManageRoles)) {
       return message.channel.send("You do not have permission to use this command.");
     }
 
-    const targetId = args[0].replace(/[<@!>]/g, ''); // Clean up user input
+    // Get the user to remove roles from
+    const targetId = args[0].replace(/[<@!>]/g, ''); // Remove mention syntax if necessary
     const target = await message.guild.members.fetch(targetId).catch(() => null);
     if (!target) return message.channel.send(`No user found matching ${args[0]}`);
 
-    // Get roles excluding @everyone
-    const roles = target.roles.cache.filter(role => role.id !== message.guild.id).map(role => role.id);
-    if (roles.length === 0) return message.channel.send("User has no roles to remove.");
-
-    // Save roles to MongoDB
-    await UserRoles.findOneAndUpdate(
-      { userId: target.id, guildId: message.guild.id },
-      { roles },
-      { upsert: true, new: true }
-    );
+    // Get all roles excluding @everyone
+    const rolesToRemove = target.roles.cache.filter(role => role.id !== message.guild.id);
+    if (rolesToRemove.size === 0) return message.channel.send("User has no roles to remove.");
 
     // Remove all roles
     try {
-      await target.roles.remove(roles);
-      message.channel.send(`Removed all roles from ${target.user.username} and stored them for restoration.`);
+      await target.roles.remove(rolesToRemove);
+      message.channel.send(`Removed all roles from ${target.user.username}.`);
     } catch (error) {
-      console.error("Error in removeallroles command:", error);
+      console.error("Error removing roles:", error);
       message.channel.send("An error occurred while trying to remove roles.");
     }
   },
