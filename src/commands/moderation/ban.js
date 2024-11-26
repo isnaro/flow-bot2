@@ -83,9 +83,10 @@ async function ban(issuer, target, reason, duration) {
   const banTime = new Date(currentTime.getTime() + gmtPlusOneOffset);
   const banTimeString = banTime.toUTCString().replace("GMT", "GMT+1");
 
+  let dmStatus = "Unknown"; // To store whether the DM was successfully sent
+
   try {
-    const banMessage = `### 🔴🔴 You were banned from **${issuer.guild.name}** for __***${reason}***__ ###
-    ### In case you believe the ban was unfair, you can appeal it here: [FLOW Appeal](https://discord.gg/YuJbSBxbrX) ###`;
+    const banMessage = `### 🔴🔴 You were banned from **${issuer.guild.name}** for __***${reason}***__ ###\n### In case you believe the ban was unfair, you can appeal it here: [FLOW Appeal](https://discord.gg/YuJbSBxbrX) ###`;
 
     if (duration) {
       const unbanDate = new Date(currentTime.getTime() + duration + gmtPlusOneOffset);
@@ -96,87 +97,84 @@ async function ban(issuer, target, reason, duration) {
 
       try {
         await target.send(dmMessage);
+        dmStatus = "Sent"; // DM was successfully sent
       } catch (error) {
         console.error(`Failed to send DM to ${target.username}:`, error);
+        dmStatus = "Failed"; // DM sending failed
+      }
+
+      await issuer.guild.members.ban(target, { reason });
+
+      if (logChannel) {
+        const embed = new EmbedBuilder()
+          .setAuthor({ name: "Moderation - Ban" })
+          .setColor("#2f3136")
+          .setThumbnail(target.displayAvatarURL({ dynamic: true }))
+          .addFields(
+            { name: "Member", value: `${target.tag} [${target.id}]`, inline: false },
+            { name: "Reason", value: reason, inline: false },
+            { name: "Duration", value: ms(duration, { long: true }), inline: true },
+            { name: "DM Status", value: dmStatus, inline: true },
+            { name: "Expires", value: `<t:${Math.floor((Date.now() + duration) / 1000)}:R>`, inline: true },
+            { name: "Unban Date", value: unbanDateString, inline: true }
+          )
+          .setFooter({ text: `Banned by ${issuer.user.tag} [${issuer.id}]`, iconURL: issuer.user.displayAvatarURL({ dynamic: true }) })
+          .setTimestamp();
+        await logChannel.send({ embeds: [embed] });
       }
 
       setTimeout(async () => {
-        await issuer.guild.members.ban(target, { reason });
-
-        // Send embed to log channel
-        if (logChannel) {
-          const embed = new EmbedBuilder()
-            .setAuthor({ name: "Moderation - Ban" })
-            .setColor("#2f3136")
-            .setThumbnail(target.displayAvatarURL({ dynamic: true }))
-            .addFields(
-              { name: "Member", value: `${target.tag} [${target.id}]`, inline: false },
-              { name: "Reason", value: reason, inline: false },
-              { name: "Duration", value: duration ? ms(duration, { long: true }) : "Permanent", inline: true },
-              { name: "Expires", value: duration ? `<t:${Math.floor((Date.now() + duration) / 1000)}:R>` : "Never", inline: true },
-              { name: "Unban Date", value: unbanDateString, inline: true }
-            )
-            .setFooter({ text: `Banned by ${issuer.user.tag} [${issuer.id}]`, iconURL: issuer.user.displayAvatarURL({ dynamic: true }) })
-            .setTimestamp();
-          await logChannel.send({ embeds: [embed] });
-        }
-
-        setTimeout(async () => {
-          try {
-            await issuer.guild.members.unban(target.id, "Ban duration expired");
-
-            // Send unban embed to log channel
-            if (logChannel) {
-              const unbanEmbed = new EmbedBuilder()
-                .setAuthor({ name: "Moderation - Unban" })
-                .setColor("#2f3136")
-                .setThumbnail(target.displayAvatarURL({ dynamic: true }))
-                .addFields(
-                  { name: "Member", value: `${target.tag} [${target.id}]`, inline: false },
-                  { name: "Reason", value: "Ban duration expired", inline: false },
-                  { name: "Unban Time", value: new Date(Date.now() + gmtPlusOneOffset).toUTCString().replace("GMT", "GMT+1"), inline: false }
-                )
-                .setFooter({ text: `Unbanned by System`, iconURL: issuer.user.displayAvatarURL({ dynamic: true }) })
-                .setTimestamp();
-              await logChannel.send({ embeds: [unbanEmbed] });
-            }
-          } catch (error) {
-            console.error(`Failed to unban ${target.username} after temporary ban:`, error);
+        try {
+          await issuer.guild.members.unban(target.id, "Ban duration expired");
+          if (logChannel) {
+            const unbanEmbed = new EmbedBuilder()
+              .setAuthor({ name: "Moderation - Unban" })
+              .setColor("#2f3136")
+              .setThumbnail(target.displayAvatarURL({ dynamic: true }))
+              .addFields(
+                { name: "Member", value: `${target.tag} [${target.id}]`, inline: false },
+                { name: "Reason", value: "Ban duration expired", inline: false },
+                { name: "Unban Time", value: new Date(Date.now() + gmtPlusOneOffset).toUTCString().replace("GMT", "GMT+1"), inline: false }
+              )
+              .setFooter({ text: `Unbanned by System`, iconURL: issuer.user.displayAvatarURL({ dynamic: true }) })
+              .setTimestamp();
+            await logChannel.send({ embeds: [unbanEmbed] });
           }
-        }, duration);
+        } catch (error) {
+          console.error(`Failed to unban ${target.username} after temporary ban:`, error);
+        }
+      }, duration);
 
-      }, 1000); // 1-second delay before banning
-
-      return `${target.username} will be banned in 1 second for ${ms(duration, { long: true })}!`;
+      return `${target.username} has been banned for ${ms(duration, { long: true })}. DM Status: ${dmStatus}`;
     } else {
       try {
         await target.send(banMessage);
+        dmStatus = "Sent";
       } catch (error) {
         console.error(`Failed to send DM to ${target.username}:`, error);
+        dmStatus = "Failed";
       }
 
-      setTimeout(async () => {
-        await issuer.guild.members.ban(target, { reason });
+      await issuer.guild.members.ban(target, { reason });
 
-        // Send embed to log channel
-        if (logChannel) {
-          const embed = new EmbedBuilder()
-            .setAuthor({ name: "Moderation - Ban" })
-            .setColor("#2f3136")
-            .setThumbnail(target.displayAvatarURL({ dynamic: true }))
-            .addFields(
-              { name: "Member", value: `${target.tag} [${target.id}]`, inline: false },
-              { name: "Reason", value: reason, inline: false },
-              { name: "Duration", value: "Permanent", inline: true },
-              { name: "Expires", value: "Never", inline: true }
-            )
-            .setFooter({ text: `Banned by ${issuer.user.tag} [${issuer.id}]`, iconURL: issuer.user.displayAvatarURL({ dynamic: true }) })
-            .setTimestamp();
-          await logChannel.send({ embeds: [embed] });
-        }
-      }, 1000); // 1-second delay before banning
+      if (logChannel) {
+        const embed = new EmbedBuilder()
+          .setAuthor({ name: "Moderation - Ban" })
+          .setColor("#2f3136")
+          .setThumbnail(target.displayAvatarURL({ dynamic: true }))
+          .addFields(
+            { name: "Member", value: `${target.tag} [${target.id}]`, inline: false },
+            { name: "Reason", value: reason, inline: false },
+            { name: "Duration", value: "Permanent", inline: true },
+            { name: "DM Status", value: dmStatus, inline: true },
+            { name: "Expires", value: "Never", inline: true }
+          )
+          .setFooter({ text: `Banned by ${issuer.user.tag} [${issuer.id}]`, iconURL: issuer.user.displayAvatarURL({ dynamic: true }) })
+          .setTimestamp();
+        await logChannel.send({ embeds: [embed] });
+      }
 
-      return `${target.username} will be permanently banned in 1 second!`;
+      return `${target.username} has been permanently banned. DM Status: ${dmStatus}`;
     }
   } catch (error) {
     console.error("Error banning user:", error);

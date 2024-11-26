@@ -53,6 +53,7 @@
     "mongoose": "^8.1.1",
     "nekos.life": "^3.0.0",
     "node-fetch": "^2.7.0",
+    "node-schedule": "^2.1.1",
     "os": "^0.1.2",
     "path": "^0.12.7",
     "pino": "^8.18.0",
