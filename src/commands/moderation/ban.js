@@ -84,7 +84,8 @@ async function ban(issuer, target, reason, duration) {
   const banTimeString = banTime.toUTCString().replace("GMT", "GMT+1");
 
   try {
-    const banMessage = `### 🔴🔴 You were banned from **${issuer.guild.name}** for __***${reason}***__ ###`;
+    const banMessage = `### 🔴🔴 You were banned from **${issuer.guild.name}** for __***${reason}***__ ###
+    ### In case you believe the ban was unfair, you can appeal it here: [FLOW Appeal](https://discord.gg/YuJbSBxbrX) ###`;
 
     if (duration) {
       const unbanDate = new Date(currentTime.getTime() + duration + gmtPlusOneOffset);
