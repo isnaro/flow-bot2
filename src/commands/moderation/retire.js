@@ -19,7 +19,7 @@ module.exports = {
   },
 
   async messageRun(message, args) {
-    const allowedChannelId = "1275958005396934741";
+    const allowedChannelId = "1311454017917947975";
     const announcementChannelId = "1273436643172290570"; // Channel where the retirement announcement is sent
     const trialStaffRoleId = "1226166868952350721"; // Trial Staff role
     const staffRoleId = "1226167494226608198"; // Staff role
