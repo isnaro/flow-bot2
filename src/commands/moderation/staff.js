@@ -5,7 +5,7 @@ const { EmbedBuilder } = require("discord.js");
  */
 module.exports = {
   name: "staff",
-  description: "Assigns a staff role to a user and announces it to the staff team",
+  description: "Assigns the Trial Staff role to a user and announces it to the staff team",
   category: "MODERATION",
   userPermissions: ["Administrator"], // Requires the user to be an administrator
   botPermissions: ["ManageRoles"],
@@ -19,10 +19,12 @@ module.exports = {
   },
 
   async messageRun(message, args) {
-    const allowedChannelId = "1273436643172290570";
+    const allowedChannelId = "1275958005396934741";
     const announcementChannelId = "1273436643172290570"; // Channel for welcoming new staff
-    const staffRoleId = "1226167494226608198"; // Staff role to assign
-    const trialStaffRoleId = "1226166868952350721"; // Trial Staff role for mentions in the announcement
+    const trialStaffRoleId = "1226166868952350721"; // Role to assign
+    const retiredStaffRoleId = "1231027781790335067"; // Retired Staff role to remove
+    const someOtherRoleId = "1252259217146904607"; // Another role to remove
+    const staffRoleId = "1226167494226608198"; // Staff role for mention in announcement
 
     // Ensure the command is used in the correct channel
     if (message.channel.id !== allowedChannelId) {
@@ -34,13 +36,21 @@ module.exports = {
     if (!targetMember) return message.channel.send(`No user found matching ${userIdOrMention}`);
 
     try {
-      // Assign the Staff role to the target member
-      await targetMember.roles.add(staffRoleId);
+      // Remove roles if the target member has them
+      if (targetMember.roles.cache.has(retiredStaffRoleId)) {
+        await targetMember.roles.remove(retiredStaffRoleId);
+      }
+      if (targetMember.roles.cache.has(someOtherRoleId)) {
+        await targetMember.roles.remove(someOtherRoleId);
+      }
 
-      // Announce the new staff member in the announcement channel
+      // Assign the Trial Staff role to the target member
+      await targetMember.roles.add(trialStaffRoleId);
+
+      // Announce the new trial staff member in the announcement channel
       const announcementChannel = message.guild.channels.cache.get(announcementChannelId);
       if (announcementChannel) {
-        const welcomeMessage = `<@&${staffRoleId}> <@&${trialStaffRoleId}> 🎉 Please welcome **<@${targetMember.id}>** to the Staff Team! Let's give them a warm welcome! 👏`;
+        const welcomeMessage = `<@&${staffRoleId}> <@&${trialStaffRoleId}> 🎉 Please welcome **<@${targetMember.id}>** to the team as Trial Staff! Let's give them a warm welcome! 👏`;
 
         await announcementChannel.send({
           content: welcomeMessage,
@@ -52,13 +62,13 @@ module.exports = {
       const embed = new EmbedBuilder()
         .setColor(0x57f287)
         .setTitle("Welcome to the Staff Team!")
-        .setDescription(`🎉 **${targetMember.user.tag}** has been successfully added to the Staff Team!`)
+        .setDescription(`🎉 **${targetMember.user.tag}** has been successfully added as Trial Staff!`)
         .setThumbnail(targetMember.user.displayAvatarURL({ dynamic: true }))
-        .setFooter({ text: "Staff Role Assigned", iconURL: message.guild.iconURL() });
+        .setFooter({ text: "Trial Staff Role Assigned", iconURL: message.guild.iconURL() });
 
       await message.channel.send({ embeds: [embed] });
     } catch (error) {
-      console.error(`Failed to assign staff role: ${error.message}`);
+      console.error(`Failed to assign Trial Staff role: ${error.message}`);
       message.channel.send("An error occurred while adding the user to the staff team.");
     }
   },
